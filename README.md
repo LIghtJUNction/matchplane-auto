@@ -20,6 +20,10 @@ The first integration keeps the components framework-neutral at the boundary:
 - `ListingSheet` renders consented offline contact and viewing actions.
 - `src/styles.css` contains the subplatform visual language.
 
+The adapter contains no seeded vehicle records or fabricated performance metrics. Sellers submit
+schema-defined vehicle JSON through the root upload callback; the root stores it as a pending review
+submission and only an approved record is eligible for buyer matching.
+
 ## Publishing
 
 Builds are immutable. A root operator registers a repository URL or a verified archive, validates
