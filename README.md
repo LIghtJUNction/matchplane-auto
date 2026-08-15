@@ -8,7 +8,7 @@ seller promotion presentation and the buyer/seller/platform workspace UI.
 ## Contract
 
 `matchplane.subplatform.json` is the manifest consumed by the root platform. A host mounts this
-package at `/auto`, resolves the tenant/domain and membership scope from that path, and injects
+package at `/used-car`, resolves the tenant/domain and membership scope from that path, and injects
 root API clients. The package must not create its own account database or issue independent
 capability tokens.
 
