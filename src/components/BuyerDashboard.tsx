@@ -23,9 +23,7 @@ interface BuyerDashboardProps {
   onNotice: (message: string) => void;
 }
 
-const filters = ["预算 20–30 万", "2022 年后", "4 万公里内", "上海周边", "可第三方检测"];
-
-export function BuyerDashboard({ onOpenListing, onNotice }: BuyerDashboardProps) {
+export function BuyerDashboard({ onOpenListing, onNotice, filters = [] }: BuyerDashboardProps & { filters?: string[] }) {
   const [query, setQuery] = useState("");
   const [saved, setSaved] = useState<Set<string>>(() => new Set());
 
@@ -59,7 +57,7 @@ export function BuyerDashboard({ onOpenListing, onNotice }: BuyerDashboardProps)
         <div className="hero-copy">
           <span className="hero-kicker">
             <Sparkles size={16} aria-hidden="true" />
-            需求已更新 · 12 个高质量匹配
+            需求由买家定义
           </span>
           <h1 id="buyer-hero-title">
             适合你的车，
@@ -106,9 +104,9 @@ export function BuyerDashboard({ onOpenListing, onNotice }: BuyerDashboardProps)
             alt="两只手共同托起一辆汽车，象征买卖双方建立可信连接"
           />
           <div className="floating-match-card">
-            <span>最佳匹配</span>
-            <strong>96%</strong>
-            <small>预算 · 续航 · 地点</small>
+            <span>匹配理由</span>
+            <strong>AI</strong>
+            <small>预算 · 用途 · 车况</small>
           </div>
         </motion.div>
       </section>
@@ -116,7 +114,7 @@ export function BuyerDashboard({ onOpenListing, onNotice }: BuyerDashboardProps)
       <section className="discovery-panel" aria-label="找车条件">
         <label className="search-field">
           <Search size={20} aria-hidden="true" />
-          <span className="sr-only">搜索推荐车辆</span>
+          <span className="sr-only">搜索车源</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -127,7 +125,6 @@ export function BuyerDashboard({ onOpenListing, onNotice }: BuyerDashboardProps)
         <button className="filter-button" type="button" onClick={() => onNotice("高级筛选已展开")}>
           <SlidersHorizontal size={18} aria-hidden="true" />
           筛选
-          <span>5</span>
         </button>
         <div className="filter-chips" aria-label="当前筛选条件">
           {filters.map((filter) => (
@@ -143,7 +140,6 @@ export function BuyerDashboard({ onOpenListing, onNotice }: BuyerDashboardProps)
         <SectionHeading
           eyebrow="为你排序，而不是竞价排序"
           title={`${visible.length} 台优先推荐`}
-          action="查看全部 12 台"
         />
         {visible.length ? (
           <div className="vehicle-grid">
@@ -161,9 +157,9 @@ export function BuyerDashboard({ onOpenListing, onNotice }: BuyerDashboardProps)
         ) : (
           <div className="empty-state">
             <Search size={28} aria-hidden="true" />
-            <h3>没有命中这次搜索</h3>
-            <p>保留你的硬性条件，换一个品牌或城市试试。</p>
-            <button type="button" onClick={() => setQuery("")}>清除搜索</button>
+            <h3>{query ? "没有命中这次搜索" : "等待卖家上传车源"}</h3>
+            <p>{query ? "保留你的硬性条件，换一个品牌或城市试试。" : "平台不预置演示车源，审核通过的真实资料会出现在这里。"}</p>
+            {query ? <button type="button" onClick={() => setQuery("")}>清除搜索</button> : null}
           </div>
         )}
       </section>
