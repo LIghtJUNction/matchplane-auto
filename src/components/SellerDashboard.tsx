@@ -6,11 +6,21 @@ import { MetricCard, SectionHeading, spring } from "./Primitives";
 
 interface SellerDashboardProps {
   onNotice: (message: string) => void;
-  onSubmitSupply?: (attributes: Record<string, unknown>) => Promise<void> | void;
+  onSubmitSupply?: (supply: {
+    externalKey: string;
+    displayName: string;
+    askingAmount: string;
+    currency: string;
+    attributes: Record<string, unknown>;
+  }) => Promise<void> | void;
 }
 
 /** Automotive presentation adapter. Inventory is always supplied by the root API. */
 export function SellerDashboard({ onNotice, onSubmitSupply }: SellerDashboardProps) {
+  const [externalKey, setExternalKey] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [askingAmount, setAskingAmount] = useState("");
+  const [currency, setCurrency] = useState("");
   const [attributes, setAttributes] = useState("{}");
   const [submitting, setSubmitting] = useState(false);
 
@@ -19,8 +29,22 @@ export function SellerDashboard({ onNotice, onSubmitSupply }: SellerDashboardPro
     try {
       const parsed = JSON.parse(attributes || "{}");
       if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("资料必须是 JSON 对象");
+      if (!externalKey.trim() || !displayName.trim() || !askingAmount.trim() || !currency.trim()) {
+        throw new Error("请完整填写供给名称、内部编号、报价和币种");
+      }
       setSubmitting(true);
-      await onSubmitSupply?.(parsed as Record<string, unknown>);
+      await onSubmitSupply?.({
+        externalKey: externalKey.trim(),
+        displayName: displayName.trim(),
+        askingAmount: askingAmount.trim(),
+        currency: currency.trim().toUpperCase(),
+        attributes: parsed as Record<string, unknown>,
+      });
+      setExternalKey("");
+      setDisplayName("");
+      setAskingAmount("");
+      setCurrency("");
+      setAttributes("{}");
       onNotice(onSubmitSupply ? "车辆资料已提交审核" : "请先连接根平台的供给上传接口");
     } catch (error) {
       onNotice(error instanceof Error ? error.message : "车辆资料格式无效");
@@ -51,6 +75,22 @@ export function SellerDashboard({ onNotice, onSubmitSupply }: SellerDashboardPro
         <SectionHeading eyebrow="卖家上传" title="提交一份车源资料" />
         <p className="seller-upload-intro">车辆字段由本子平台 manifest 注册的 schema 定义；根平台只接收结构化资料，不替卖家生成品牌、价格或车况。</p>
         <form className="seller-upload-form" onSubmit={submit}>
+          <label>
+            <span>供给名称</span>
+            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="由你填写" maxLength={500} />
+          </label>
+          <label>
+            <span>内部编号</span>
+            <input value={externalKey} onChange={(event) => setExternalKey(event.target.value)} placeholder="用于更新同一份资料" maxLength={256} />
+          </label>
+          <label>
+            <span>报价（最小货币单位）</span>
+            <input value={askingAmount} onChange={(event) => setAskingAmount(event.target.value)} inputMode="numeric" placeholder="例如 100000" />
+          </label>
+          <label>
+            <span>币种</span>
+            <input value={currency} onChange={(event) => setCurrency(event.target.value)} placeholder="ISO 4217，例如 CNY" maxLength={3} />
+          </label>
           <label className="seller-upload-wide" htmlFor="auto-attributes">
             <span>车源资料（JSON）</span>
             <textarea id="auto-attributes" value={attributes} onChange={(event) => setAttributes(event.target.value)} rows={10} spellCheck={false} />

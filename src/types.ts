@@ -1,4 +1,4 @@
-export type WorkspaceRole = "buyer" | "seller" | "platform";
+export type WorkspaceRole = "buyer" | "seller" | "platform" | "subplatform_admin";
 
 export type Accent = "cactus" | "clay" | "heather" | "oat";
 
