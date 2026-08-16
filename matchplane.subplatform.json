@@ -30,6 +30,17 @@
       "buyerFootnote": "联系方式只在双方同意后交换；线下看车会保留撮合记录。",
       "sellerFootnote": "资料审核通过后才会展示；联系方式只在双方同意后交换。"
     },
+    "copy": {
+      "demandRoleLabel": "买方",
+      "supplyRoleLabel": "卖方",
+      "demandRoleLabelEn": "Buyer",
+      "supplyRoleLabelEn": "Seller",
+      "supplyWorkspaceLabel": "卖方工作台",
+      "offerNameLabel": "车源名称",
+      "externalKeyLabel": "车源编号",
+      "priceLabel": "售价",
+      "contactTitle": "匹配后直接联系卖方"
+    },
     "filters": [
       { "key": "verified", "label": "已核验", "source": "trust" },
       { "key": "priced", "label": "有明确报价", "source": "price" },
