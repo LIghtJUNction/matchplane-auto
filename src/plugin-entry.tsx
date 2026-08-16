@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { BuyerDashboard } from "./components/BuyerDashboard";
@@ -24,6 +24,13 @@ type PluginContext = {
       placeholder?: string;
       options?: string[];
     }>;
+    contactFields?: Array<{
+      key: string;
+      label: string;
+      type?: "text" | "tel" | "email";
+      required?: boolean;
+      placeholder?: string;
+    }>;
   };
 };
 
@@ -42,7 +49,7 @@ function AutoPlugin() {
     const onMessage = (event: MessageEvent<unknown>) => {
       if (event.source !== window.parent || !isRecord(event.data) || event.data.protocol !== "matchplane.plugin/v1") return;
       if (
-        event.data.type === "listing.submit.result"
+        (event.data.type === "listing.submit.result" || event.data.type === "contact.update.result")
         && event.data.contextToken === contextTokenRef.current
         && typeof event.data.requestId === "string"
       ) {
@@ -96,6 +103,20 @@ function AutoPlugin() {
     }, 15_000);
   });
 
+  const submitContact = (contact: Record<string, string>) => new Promise<void>((resolve, reject) => {
+    const requestId = createSecureId();
+    pendingRequests.current.set(requestId, (response) => {
+      if (response.ok) resolve();
+      else reject(new Error(response.error || "联系方式保存失败，请稍后重试"));
+    });
+    postToParent("contact.update", { contact }, requestId);
+    window.setTimeout(() => {
+      if (!pendingRequests.current.has(requestId)) return;
+      pendingRequests.current.delete(requestId);
+      reject(new Error("根平台响应超时，请稍后重试"));
+    }, 15_000);
+  });
+
   const postToParent = (type: string, payload?: unknown, requestId?: string) => {
     window.parent.postMessage({
       protocol: "matchplane.plugin/v1",
@@ -111,16 +132,22 @@ function AutoPlugin() {
     <main className="plugin-app">
       <div className="plugin-context" role="status">{notice}</div>
       {role === "buyer" ? (
-        <BuyerDashboard onOpenListing={setListing} onNotice={notify} />
+        <>
+          <ContactProfile onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
+          <BuyerDashboard onOpenListing={setListing} onNotice={notify} />
+        </>
       ) : role === "seller" ? (
-        <SellerDashboard
-          onNotice={notify}
-          onSubmitSupply={submitSupply}
-          currency={platformContext.currency}
-          currencyScale={platformContext.currencyScale}
-          supplyFields={platformContext.ui?.supplyFields}
-          assetSchema={platformContext.assetSchema}
-        />
+        <>
+          <ContactProfile onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
+          <SellerDashboard
+            onNotice={notify}
+            onSubmitSupply={submitSupply}
+            currency={platformContext.currency}
+            currencyScale={platformContext.currencyScale}
+            supplyFields={platformContext.ui?.supplyFields}
+            assetSchema={platformContext.assetSchema}
+          />
+        </>
       ) : (
         <PlatformDashboard
           paymentMode="test"
@@ -135,6 +162,82 @@ function AutoPlugin() {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function ContactProfile({
+  fields = [],
+  submitContact,
+  onNotice,
+}: {
+  fields?: NonNullable<PluginContext["ui"]>["contactFields"];
+  submitContact: (contact: Record<string, string>) => Promise<void>;
+  onNotice: (message: string) => void;
+}) {
+  const configured = fields?.length ? fields : [
+    { key: "phone", label: "电话", type: "tel" as const },
+    { key: "wechat", label: "微信", type: "text" as const },
+    { key: "qq", label: "QQ", type: "text" as const },
+    { key: "email", label: "邮箱", type: "email" as const },
+  ];
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const save = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const contact = Object.fromEntries(
+      Object.entries(values).map(([key, value]) => [key, value.trim()] as const).filter(([, value]) => value),
+    );
+    const missing = configured.find((field) => field.required && !contact[field.key]);
+    if (missing) {
+      onNotice(`${missing.label}不能为空`);
+      return;
+    }
+    if (!Object.keys(contact).length) {
+      onNotice("至少填写一种联系方式");
+      return;
+    }
+    setSaving(true);
+    try {
+      await submitContact(contact);
+      setValues({});
+      onNotice("联系方式已加密保存；双方同意后才会交换");
+    } catch (error) {
+      onNotice(error instanceof Error ? error.message : "联系方式保存失败，请稍后重试");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="surface contact-profile-card" aria-labelledby="auto-contact-profile-title">
+      <div className="contact-profile-heading">
+        <div>
+          <p className="eyebrow">联系方式</p>
+          <h2 id="auto-contact-profile-title">设置双方同意后交换的渠道</h2>
+          <p>电话、微信、QQ、邮箱等渠道只会加密保存，匹配双方同意后才会解锁。</p>
+        </div>
+      </div>
+      <form className="contact-profile-form" onSubmit={save}>
+        {configured.map((field) => (
+          <label key={field.key} htmlFor={`auto-contact-${field.key}`}>
+            <span>{field.label}{field.required ? " *" : ""}</span>
+            <input
+              id={`auto-contact-${field.key}`}
+              type={field.type === "tel" ? "tel" : field.type === "email" ? "email" : "text"}
+              value={values[field.key] ?? ""}
+              onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}
+              placeholder={field.placeholder}
+              maxLength={256}
+            />
+          </label>
+        ))}
+        <div className="contact-profile-footer">
+          <span>加密保存 · 双方同意后释放</span>
+          <button className="button button-dark" type="submit" disabled={saving}>{saving ? "保存中…" : "保存联系方式"}</button>
+        </div>
+      </form>
+    </section>
+  );
 }
 
 function createSecureId(): string {

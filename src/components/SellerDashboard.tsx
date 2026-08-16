@@ -55,8 +55,9 @@ export function SellerDashboard({
     const normalizedKey = externalKey.trim();
     const normalizedCurrency = currency.trim().toUpperCase();
     const normalizedAmount = toMinorUnits(askingAmount, currencyScale);
-    if (!normalizedKey || !normalizedName || !normalizedAmount || !normalizedCurrency) {
-      onNotice("请完整填写名称、编号、报价和结算币种");
+    const resolvedKey = normalizedKey || `offer-${crypto.randomUUID()}`;
+    if (!normalizedName || !normalizedAmount || !normalizedCurrency) {
+      onNotice("请完整填写名称、报价和结算币种");
       return;
     }
     const missing = fields.find((field) => field.required && !fieldValues[field.key]?.trim());
@@ -73,7 +74,7 @@ export function SellerDashboard({
     try {
       if (!onSubmitSupply) throw new Error("当前页面未连接供给提交接口");
       await onSubmitSupply({
-        externalKey: normalizedKey,
+        externalKey: resolvedKey,
         displayName: normalizedName,
         askingAmount: normalizedAmount,
         currency: normalizedCurrency,
@@ -116,7 +117,7 @@ export function SellerDashboard({
         <p className="seller-upload-intro">业务字段由子平台配置；高级 JSON 只用于补充未在表单中呈现的结构化属性。</p>
         <form className="seller-upload-form" onSubmit={submit}>
           <label htmlFor="plugin-seller-display-name"><span>供给名称</span><input id="plugin-seller-display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="由你填写" maxLength={500} required /></label>
-          <label htmlFor="plugin-seller-external-key"><span>内部编号</span><input id="plugin-seller-external-key" value={externalKey} onChange={(event) => setExternalKey(event.target.value)} placeholder="用于管理这份资料" maxLength={256} required /></label>
+          <label htmlFor="plugin-seller-external-key"><span>内部编号</span><input id="plugin-seller-external-key" value={externalKey} onChange={(event) => setExternalKey(event.target.value)} placeholder="留空则由平台生成" maxLength={256} /></label>
           <label htmlFor="plugin-seller-asking-amount"><span>报价{currency ? `（${currency}）` : ""}</span><input id="plugin-seller-asking-amount" value={askingAmount} onChange={(event) => setAskingAmount(event.target.value)} inputMode="decimal" placeholder={amountPlaceholder(currencyScale)} required /></label>
           <label htmlFor="plugin-seller-currency"><span>币种</span><input id="plugin-seller-currency" value={currency} onChange={(event) => setCurrency(event.target.value.toUpperCase())} placeholder="由子平台配置" maxLength={3} readOnly={Boolean(configuredCurrency)} required /></label>
           {fields.map((field) => (

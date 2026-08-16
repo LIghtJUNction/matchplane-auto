@@ -1993,6 +1993,18 @@ main {
   font-size: 0.68rem;
 }
 
+.contact-profile-card { display: grid; gap: 1rem; margin: 0 0 1.1rem; padding: 1.1rem; border: 1px solid var(--line); border-radius: 1.35rem; background: var(--paper); }
+.contact-profile-heading h2 { margin: 0.18rem 0 0.3rem; font-size: 1.1rem; }
+.contact-profile-heading p:last-child { margin: 0; color: var(--muted); font-size: 0.74rem; line-height: 1.5; }
+.contact-profile-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.contact-profile-form label { display: grid; gap: 0.35rem; }
+.contact-profile-form label > span { color: var(--ink-soft); font-size: 0.7rem; font-weight: 650; }
+.contact-profile-form input { width: 100%; min-height: 2.55rem; padding: 0 0.75rem; border: 1px solid var(--line); border-radius: 0.75rem; outline: 0; background: var(--paper); color: var(--ink); font: inherit; font-size: 0.78rem; }
+.contact-profile-form input:focus { border-color: var(--sky); box-shadow: 0 0 0 0.12rem rgba(106, 155, 204, 0.2); }
+.contact-profile-footer { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 0.8rem; }
+.contact-profile-footer > span { color: var(--muted); font-size: 0.68rem; }
+
+
 @media (max-width: 40rem) {
   .match-chat {
     margin-bottom: 1.5rem;
@@ -2008,4 +2020,6 @@ main {
   .login-back { position: static; align-self: start; margin: 0.4rem 0 0 0.4rem; }
   .login-page { display: flex; flex-direction: column; align-items: stretch; }
   .login-card { margin: auto 0; border-radius: 1.5rem; }
+  .contact-profile-form { grid-template-columns: 1fr; }
+  .contact-profile-footer { align-items: stretch; flex-direction: column; }
 }

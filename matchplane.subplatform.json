@@ -54,6 +54,12 @@
       { "key": "mileage", "label": "里程（公里）", "type": "number", "required": true },
       { "key": "energy", "label": "能源类型", "type": "select", "required": true, "options": ["燃油", "混动", "纯电", "其他"] },
       { "key": "location", "label": "看车地点", "type": "text", "required": true }
+    ],
+    "contactFields": [
+      { "key": "phone", "label": "电话", "type": "tel" },
+      { "key": "wechat", "label": "微信", "type": "text" },
+      { "key": "qq", "label": "QQ", "type": "text" },
+      { "key": "email", "label": "邮箱", "type": "email" }
     ]
   },
   "agent": {
