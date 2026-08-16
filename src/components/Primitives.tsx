@@ -98,7 +98,6 @@ export function VehicleVisual({ accent, compact = false }: { accent: Accent; com
       <span className="organic-shape organic-one" />
       <span className="organic-shape organic-two" />
       <CarFront aria-hidden="true" strokeWidth={1.45} />
-      <span className="visual-label">已核验车源</span>
     </div>
   );
 }

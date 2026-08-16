@@ -12,6 +12,19 @@ type PluginContext = {
   role?: WorkspaceRole;
   path?: string;
   contextToken?: string;
+  currency?: string;
+  currencyScale?: number;
+  assetSchema?: Record<string, unknown>;
+  ui?: {
+    supplyFields?: Array<{
+      key: string;
+      label: string;
+      type?: "text" | "number" | "url" | "date" | "select";
+      required?: boolean;
+      placeholder?: string;
+      options?: string[];
+    }>;
+  };
 };
 
 type ParentResponse = { ok: boolean; error?: string };
@@ -21,6 +34,7 @@ function AutoPlugin() {
   const [listing, setListing] = useState<VehicleListing | null>(null);
   const [notice, setNotice] = useState("等待根平台上下文");
   const [contextToken, setContextToken] = useState<string | null>(null);
+  const [platformContext, setPlatformContext] = useState<PluginContext>({});
   const contextTokenRef = useRef<string | null>(null);
   const pendingRequests = useRef(new Map<string, (response: ParentResponse) => void>());
 
@@ -44,6 +58,7 @@ function AutoPlugin() {
       }
       if (event.data.type !== "platform.context" || !isRecord(event.data.payload)) return;
       const context = event.data.payload as PluginContext;
+      setPlatformContext(context);
       if (context.role === "buyer" || context.role === "seller" || context.role === "platform" || context.role === "subplatform_admin") setRole(context.role);
       if (context.contextToken) {
         contextTokenRef.current = context.contextToken;
@@ -98,7 +113,14 @@ function AutoPlugin() {
       {role === "buyer" ? (
         <BuyerDashboard onOpenListing={setListing} onNotice={notify} />
       ) : role === "seller" ? (
-        <SellerDashboard onNotice={notify} onSubmitSupply={submitSupply} />
+        <SellerDashboard
+          onNotice={notify}
+          onSubmitSupply={submitSupply}
+          currency={platformContext.currency}
+          currencyScale={platformContext.currencyScale}
+          supplyFields={platformContext.ui?.supplyFields}
+          assetSchema={platformContext.assetSchema}
+        />
       ) : (
         <PlatformDashboard
           paymentMode="test"

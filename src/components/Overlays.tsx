@@ -120,7 +120,7 @@ export function ListingSheet({ listing, onClose, onContact }: ListingSheetProps)
               </section>
             </div>
             <div className="sheet-footer">
-              <div><small>平台撮合提成</small><strong>成交价的 1%，成交后收取</strong></div>
+                <div><small>平台服务费</small><strong>按当前平台披露规则结算</strong></div>
               <motion.button
                 className="button button-dark"
                 type="button"
