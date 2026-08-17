@@ -14,16 +14,16 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 
-import { recommendations } from "../data";
 import type { VehicleListing } from "../types";
 import { SectionHeading, VehicleVisual, spring } from "./Primitives";
 
 interface BuyerDashboardProps {
   onOpenListing: (listing: VehicleListing) => void;
   onNotice: (message: string) => void;
+  recommendations?: VehicleListing[];
 }
 
-export function BuyerDashboard({ onOpenListing, onNotice, filters = [] }: BuyerDashboardProps & { filters?: string[] }) {
+export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], filters = [] }: BuyerDashboardProps & { filters?: string[] }) {
   const [query, setQuery] = useState("");
   const [saved, setSaved] = useState<Set<string>>(() => new Set());
 

@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { BuyerDashboard } from "./components/BuyerDashboard";
-import { ListingSheet } from "./components/Overlays";
 import { PlatformDashboard } from "./components/PlatformDashboard";
 import { SellerDashboard } from "./components/SellerDashboard";
 import type { VehicleListing, WorkspaceRole } from "./types";
@@ -38,7 +37,7 @@ type ParentResponse = { ok: boolean; error?: string };
 
 function AutoPlugin() {
   const [role, setRole] = useState<WorkspaceRole>("buyer");
-  const [listing, setListing] = useState<VehicleListing | null>(null);
+  const [recommendations, setRecommendations] = useState<VehicleListing[]>([]);
   const [notice, setNotice] = useState("等待根平台上下文");
   const [contextToken, setContextToken] = useState<string | null>(null);
   const [platformContext, setPlatformContext] = useState<PluginContext>({});
@@ -63,6 +62,12 @@ function AutoPlugin() {
         }
         return;
       }
+      if (event.data.type === "match.results" && event.data.contextToken === contextTokenRef.current) {
+        const payload = isRecord(event.data.payload) ? event.data.payload : null;
+        const hosted = payload && Array.isArray(payload.listings) ? payload.listings : [];
+        setRecommendations(hosted.map((item, index) => mapHostedListing(item, index)).filter((item): item is VehicleListing => item !== null));
+        return;
+      }
       if (event.data.type !== "platform.context" || !isRecord(event.data.payload)) return;
       const context = event.data.payload as PluginContext;
       setPlatformContext(context);
@@ -80,7 +85,10 @@ function AutoPlugin() {
 
   const notify = (message: string) => {
     setNotice(message);
-    postToParent("listing.select", { message });
+  };
+
+  const openListing = (selected: VehicleListing) => {
+    postToParent("listing.open", { listingId: selected.id });
   };
 
   const submitSupply = (supply: {
@@ -134,7 +142,7 @@ function AutoPlugin() {
       {role === "buyer" ? (
         <>
           <ContactProfile onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
-          <BuyerDashboard onOpenListing={setListing} onNotice={notify} />
+          <BuyerDashboard recommendations={recommendations} onOpenListing={openListing} onNotice={notify} />
         </>
       ) : role === "seller" ? (
         <>
@@ -155,13 +163,69 @@ function AutoPlugin() {
           onNotice={notify}
         />
       )}
-      <ListingSheet listing={listing} onClose={() => setListing(null)} onContact={(selected) => notify(`已请求联系：${selected.title}`)} />
     </main>
   );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function mapHostedListing(value: unknown, index: number): VehicleListing | null {
+  if (!isRecord(value)) return null;
+  const id = textValue(value.id);
+  const title = textValue(value.title);
+  if (!id || !title) return null;
+  const facts = Array.isArray(value.facts)
+    ? value.facts.filter(isHostedFact).slice(0, 12)
+    : [];
+  const fact = (...keys: string[]) => {
+    const match = facts.find((item) => keys.includes(item.key ?? "") || keys.includes(item.label));
+    return match?.value;
+  };
+  const reasons = textArray(value.reasons);
+  const trust = textArray(value.trust);
+  const accent = ["cactus", "clay", "heather", "oat"].includes(value.accent as string)
+    ? value.accent as VehicleListing["accent"]
+    : (["cactus", "clay", "heather", "oat"] as const)[index % 4];
+  const score = typeof value.matchScore === "number" && Number.isFinite(value.matchScore)
+    ? Math.max(0, Math.min(100, Math.round(value.matchScore)))
+    : 0;
+  return {
+    id,
+    title,
+    subtitle: textValue(value.subtitle) || "",
+    price: textValue(value.price) || "面议",
+    monthly: textValue(value.priceLabel) || "",
+    mileage: fact("mileage", "里程") || "—",
+    location: textValue(value.location) || "未提供",
+    energy: fact("energy", "能源") || "—",
+    year: fact("year", "年份") || "—",
+    matchScore: score,
+    accent,
+    reasons: reasons.length ? reasons : ["根据当前需求排序"],
+    trust,
+    seller: textValue(value.seller) || "供给方",
+    response: textValue(value.response) || "平台撮合中",
+  };
+}
+
+function isHostedFact(value: unknown): value is { key?: string; label: string; value: string } {
+  return isRecord(value)
+    && typeof value.label === "string"
+    && typeof value.value === "string"
+    && value.label.length <= 128
+    && value.value.length <= 512;
+}
+
+function textValue(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function textArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim()).slice(0, 8)
+    : [];
 }
 
 function ContactProfile({
