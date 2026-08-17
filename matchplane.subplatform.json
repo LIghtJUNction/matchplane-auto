@@ -24,6 +24,8 @@
       "sellerEyebrow": "车源供给",
       "buyerTitle": "说清楚你想找的车。",
       "sellerTitle": "提交你的真实车源。",
+      "buyerHeadlines": ["说清楚你想找的车。", "让预算遇见合适的车况。", "从真实需求开始选车。"],
+      "sellerHeadlines": ["提交你的真实车源。", "让好车被真正需要的人看见。", "把车况交给匹配。"],
       "buyerDescription": "告诉我们预算、用途、时间和不能妥协的条件，平台会把需求交给合适的车源。",
       "sellerDescription": "填写车源资料和报价，审核通过后进入买家匹配。",
       "buyerPlaceholder": "例如：预算、用途、时间和不能妥协的条件……",
@@ -66,11 +68,7 @@
     "protocol": "matchplane.agent/v1",
     "stages": ["merchant", "inventory"],
     "skills": ["matchplane.matching.v1"],
-    "mcpTools": ["merchant.search", "inventory.search", "catalog.explain"]
-  },
-  "retrieval": {
-    "protocol": "matchplane.retrieval/v1",
-    "owner": "subplatform"
+    "mcpTools": []
   },
   "assets": {
     "staticDirectory": "dist",

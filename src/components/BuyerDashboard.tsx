@@ -36,7 +36,7 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
         .toLocaleLowerCase("zh-CN")
         .includes(normalized),
     );
-  }, [query]);
+  }, [query, recommendations]);
 
   const toggleSaved = (id: string) => {
     setSaved((current) => {

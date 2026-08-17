@@ -10,6 +10,8 @@ import "./styles.css";
 type PluginContext = {
   role?: WorkspaceRole;
   path?: string;
+  theme?: "light" | "dark";
+  locale?: "zh" | "en";
   contextToken?: string;
   currency?: string;
   currencyScale?: number;
@@ -71,6 +73,13 @@ function AutoPlugin() {
       if (event.data.type !== "platform.context" || !isRecord(event.data.payload)) return;
       const context = event.data.payload as PluginContext;
       setPlatformContext(context);
+      if (context.theme === "light" || context.theme === "dark") {
+        document.documentElement.dataset.theme = context.theme;
+        document.documentElement.style.colorScheme = context.theme;
+      }
+      if (context.locale === "zh" || context.locale === "en") {
+        document.documentElement.lang = context.locale === "en" ? "en" : "zh-CN";
+      }
       if (context.role === "buyer" || context.role === "seller" || context.role === "platform" || context.role === "subplatform_admin") setRole(context.role);
       if (context.contextToken) {
         contextTokenRef.current = context.contextToken;

@@ -24,6 +24,11 @@ The adapter contains no seeded vehicle records or fabricated performance metrics
 schema-defined vehicle JSON through the root upload callback; the root stores it as a pending review
 submission and only an approved record is eligible for buyer matching.
 
+This package does not ship a retrieval index or MCP server, so its manifest intentionally declares
+no MCP tools. A deployment that wants AI/vector retrieval or other Agent tools must provide a
+separate child-owned endpoint, add only the implemented tool names to the manifest, and configure
+the server-side credential; until then the root matcher is the deterministic fallback.
+
 ## Publishing
 
 Builds are immutable. A root operator registers a repository URL or a verified archive, validates
