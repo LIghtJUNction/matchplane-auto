@@ -16,6 +16,12 @@ type PluginContext = {
   currency?: string;
   currencyScale?: number;
   assetSchema?: Record<string, unknown>;
+  agentDraft?: {
+    narrative: string;
+    intentId?: string;
+    attributes: Record<string, unknown>;
+    terms: Record<string, unknown>;
+  };
   ui?: {
     supplyFields?: Array<{
       key: string;
@@ -163,6 +169,7 @@ function AutoPlugin() {
             currencyScale={platformContext.currencyScale}
             supplyFields={platformContext.ui?.supplyFields}
             assetSchema={platformContext.assetSchema}
+            agentDraft={platformContext.agentDraft}
           />
         </>
       ) : (

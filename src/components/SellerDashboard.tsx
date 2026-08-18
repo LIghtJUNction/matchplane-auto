@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowRight, FileUp, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -26,6 +26,12 @@ interface SellerDashboardProps {
   currencyScale?: number;
   supplyFields?: SupplyField[];
   assetSchema?: Record<string, unknown>;
+  agentDraft?: {
+    narrative: string;
+    intentId?: string;
+    attributes: Record<string, unknown>;
+    terms: Record<string, unknown>;
+  } | null;
 }
 
 /** The host supplies all domain fields. This adapter only renders the shared supply contract. */
@@ -36,6 +42,7 @@ export function SellerDashboard({
   currencyScale = 0,
   supplyFields = [],
   assetSchema,
+  agentDraft = null,
 }: SellerDashboardProps) {
   const [externalKey, setExternalKey] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -45,9 +52,29 @@ export function SellerDashboard({
   const [customFields, setCustomFields] = useState<Array<{ id: string; key: string; value: string }>>([]);
   const [advancedAttributes, setAdvancedAttributes] = useState("{}");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [draftImported, setDraftImported] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const fields = useMemo(() => supplyFields.length ? supplyFields : fieldsFromSchema(assetSchema), [assetSchema, supplyFields]);
+
+  useEffect(() => {
+    setDraftImported(false);
+  }, [agentDraft?.intentId, agentDraft?.narrative]);
+
+  const importAgentDraft = () => {
+    if (!agentDraft) return;
+    setAdvancedAttributes(JSON.stringify({
+      conversation: {
+        narrative: agentDraft.narrative,
+        intent_id: agentDraft.intentId ?? null,
+      },
+      ...agentDraft.attributes,
+      _terms: agentDraft.terms,
+    }, null, 2));
+    setAdvancedOpen(true);
+    setDraftImported(true);
+    onNotice("已把对话草稿放入编辑器，请检查并补齐字段后提交");
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -115,6 +142,17 @@ export function SellerDashboard({
       <section className="surface seller-upload" aria-labelledby="seller-upload-title">
         <SectionHeading eyebrow="资料上传" title="提交一份新的供给资料" />
         <p className="seller-upload-intro">业务字段由子平台配置；高级 JSON 只用于补充未在表单中呈现的结构化属性。</p>
+        {agentDraft ? (
+          <div className="seller-agent-draft" role="status">
+            <div>
+              <strong>对话草稿已准备好</strong>
+              <p>{agentDraft.narrative}</p>
+            </div>
+            <button className="text-action" type="button" onClick={importAgentDraft} disabled={draftImported}>
+              {draftImported ? "已放入编辑器" : "放入编辑器"}
+            </button>
+          </div>
+        ) : null}
         <form className="seller-upload-form" onSubmit={submit}>
           <label htmlFor="plugin-seller-display-name"><span>供给名称</span><input id="plugin-seller-display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="由你填写" maxLength={500} required /></label>
           <label htmlFor="plugin-seller-external-key"><span>内部编号</span><input id="plugin-seller-external-key" value={externalKey} onChange={(event) => setExternalKey(event.target.value)} placeholder="留空则由平台生成" maxLength={256} /></label>
