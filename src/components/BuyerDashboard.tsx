@@ -158,7 +158,7 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
           <div className="empty-state">
             <Search size={28} aria-hidden="true" />
             <h3>{query ? "没有命中这次搜索" : "等待卖家上传车源"}</h3>
-            <p>{query ? "保留你的硬性条件，换一个品牌或城市试试。" : "平台不预置演示车源，审核通过的真实资料会出现在这里。"}</p>
+            <p>{query ? "保留你的硬性条件，换一个品牌或城市试试。" : "平台不预置车源，审核通过的真实资料会出现在这里。"}</p>
             {query ? <button type="button" onClick={() => setQuery("")}>清除搜索</button> : null}
           </div>
         )}

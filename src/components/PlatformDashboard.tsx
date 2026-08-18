@@ -32,7 +32,7 @@ export function PlatformDashboard({ paymentMode, onRequestModeChange, onNotice }
           <div className="gateway-empty">
             <CreditCard size={24} aria-hidden="true" />
             <strong>等待根平台返回已配置网关</strong>
-            <p>此处不会显示示例网关或虚构金额。</p>
+            <p>未配置的网关和金额会保持空白，不会显示虚构数据。</p>
             <button type="button" onClick={() => onNotice("请在根平台管理入口配置支付网关")}>打开根平台管理</button>
           </div>
         </section>
