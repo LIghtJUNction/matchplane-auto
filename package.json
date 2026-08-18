@@ -8,14 +8,14 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "lucide-react": "1.31.0",
-    "motion": "13.1.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "lucide-react": "latest",
+    "motion": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   },
   "devDependencies": {
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
-    "typescript": "7.0.2"
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest"
   }
 }

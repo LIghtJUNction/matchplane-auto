@@ -34,3 +34,10 @@ the server-side credential; until then the root matcher is the deterministic fal
 Builds are immutable. A root operator registers a repository URL or a verified archive, validates
 the manifest, pins a commit/digest, and then records the subplatform path. Arbitrary server-side
 code from a plugin is never executed by the root service.
+
+The package does not pin a Bun runtime or a Bun release in its manifest. The isolated builder
+resolves `bun` from its operator-managed `PATH` (or from the absolute
+`MATCHPLANE_SUBPLATFORM_BUILDER_BUN` setting), so an operator may install the current Bun release
+with Bun's official installer without changing this package. JavaScript dependencies use the
+`latest` tag; `bun.lock` records the resolved integrity data for a repeatable build until the
+operator intentionally refreshes the package.
