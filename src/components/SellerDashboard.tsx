@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowRight, FileUp, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 
+import { localizedCopy, type PluginCopy, type PluginLocale } from "../copy";
 import { SectionHeading, spring } from "./Primitives";
 
 export interface SupplyField {
@@ -14,6 +15,8 @@ export interface SupplyField {
 }
 
 interface SellerDashboardProps {
+  locale?: PluginLocale;
+  copy?: PluginCopy;
   onNotice: (message: string) => void;
   onSubmitSupply?: (supply: {
     externalKey: string;
@@ -36,6 +39,8 @@ interface SellerDashboardProps {
 
 /** The host supplies all domain fields. This adapter only renders the shared supply contract. */
 export function SellerDashboard({
+  locale = "zh",
+  copy,
   onNotice,
   onSubmitSupply,
   currency: configuredCurrency = "",
@@ -44,6 +49,7 @@ export function SellerDashboard({
   assetSchema,
   agentDraft = null,
 }: SellerDashboardProps) {
+  const text = (key: string, fallbackZh: string, fallbackEn = fallbackZh) => localizedCopy(locale, copy, key, fallbackZh, fallbackEn);
   const [externalKey, setExternalKey] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [askingAmount, setAskingAmount] = useState("");
@@ -73,7 +79,7 @@ export function SellerDashboard({
     }, null, 2));
     setAdvancedOpen(true);
     setDraftImported(true);
-    onNotice("已把对话草稿放入编辑器，请检查并补齐字段后提交");
+    onNotice(text("agentDraftImportedNotice", "已把对话草稿放入编辑器，请检查并补齐字段后提交", "The conversation draft is in the editor; review and complete it before submitting"));
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -84,22 +90,22 @@ export function SellerDashboard({
     const normalizedAmount = toMinorUnits(askingAmount, currencyScale);
     const resolvedKey = normalizedKey || `offer-${crypto.randomUUID()}`;
     if (!normalizedName || !normalizedAmount || !normalizedCurrency) {
-      onNotice("请完整填写名称、报价和结算币种");
+      onNotice(text("supplyRequiredNotice", "请完整填写名称、报价和结算币种", "Add a name, price, and settlement currency"));
       return;
     }
     const missing = fields.find((field) => field.required && !fieldValues[field.key]?.trim());
     if (missing) {
-      onNotice(`请填写${missing.label}`);
+      onNotice(locale === "en" ? `Complete ${missing.label}` : `请填写${missing.label}`);
       return;
     }
     const attributes = attributesFromForm(fieldValues, customFields, fields, advancedOpen ? advancedAttributes : null);
     if (!attributes) {
-      onNotice("高级资料必须是有效的 JSON 对象");
+      onNotice(text("advancedJsonInvalidNotice", "高级资料必须是有效的 JSON 对象", "Advanced details must be a valid JSON object"));
       return;
     }
     setSubmitting(true);
     try {
-      if (!onSubmitSupply) throw new Error("当前页面未连接供给提交接口");
+      if (!onSubmitSupply) throw new Error(text("supplyInterfaceUnavailable", "当前页面未连接供给提交接口", "The offer submission interface is not connected"));
       await onSubmitSupply({
         externalKey: resolvedKey,
         displayName: normalizedName,
@@ -115,9 +121,9 @@ export function SellerDashboard({
       setCustomFields([]);
       setAdvancedAttributes("{}");
       setAdvancedOpen(false);
-      onNotice("资料已提交，等待平台审核后展示");
+      onNotice(text("supplySubmittedNotice", "资料已提交，等待平台审核后展示", "Submitted for review; it will appear after approval"));
     } catch (error) {
-      onNotice(error instanceof Error ? error.message : "供给提交失败，请稍后重试");
+      onNotice(error instanceof Error ? error.message : text("supplySubmitFailedNotice", "供给提交失败，请稍后重试", "Submission failed. Try again"));
     } finally {
       setSubmitting(false);
     }
@@ -127,43 +133,43 @@ export function SellerDashboard({
     <div className="dashboard seller-dashboard">
       <section className="workspace-heading">
         <div>
-          <p className="eyebrow">供给方工作台</p>
-          <h1>上传你的资料，平台负责找到合适的需求。</h1>
-          <p>页面字段来自当前子平台 manifest；根平台只负责校验、审核和撮合，不替你生成业务内容。</p>
+          <p className="eyebrow">{text("sellerWorkspaceLabel", "供给方工作台", "Supply workspace")}</p>
+          <h1>{text("sellerHeroTitle", "提交你的资料，平台负责找到合适的需求。", "Share your offer; the platform finds the right demand.")}</h1>
+          <p>{text("sellerHeroDescription", "页面字段来自当前子平台 manifest；根平台只负责校验、审核和撮合，不替你生成业务内容。", "Fields come from this subplatform manifest. The root validates, reviews, and matches without inventing your business data.")}</p>
         </div>
-        <span className="seller-mode-note"><ShieldCheck size={16} aria-hidden="true" /> 账号和联系方式由根平台保护</span>
+        <span className="seller-mode-note"><ShieldCheck size={16} aria-hidden="true" /> {text("protectedIdentityLabel", "账号和联系方式由根平台保护", "Identity and contact details are protected by the root")}</span>
       </section>
 
-      <section className="seller-status-summary" aria-label="供给资料状态">
+      <section className="seller-status-summary" aria-label={text("supplyStatusLabel", "供给资料状态", "Offer status")}>
         <FileUp size={19} aria-hidden="true" />
-        <div><strong>资料提交</strong><small>提交后进入当前子平台的审核流程</small></div>
+        <div><strong>{text("supplySubmissionLabel", "资料提交", "Offer submission")}</strong><small>{text("supplySubmissionDescription", "提交后进入当前子平台的审核流程", "After submission, the subplatform reviews it")}</small></div>
       </section>
 
       <section className="surface seller-upload" aria-labelledby="seller-upload-title">
-        <SectionHeading eyebrow="资料上传" title="提交一份新的供给资料" />
-        <p className="seller-upload-intro">业务字段由子平台配置；高级 JSON 只用于补充未在表单中呈现的结构化属性。</p>
+        <SectionHeading eyebrow={text("uploadEyebrow", "资料上传", "Offer details")} title={text("uploadTitle", "提交一份新的供给资料", "Submit a new offer")} />
+        <p className="seller-upload-intro">{text("uploadDescription", "业务字段由子平台配置；高级 JSON 只用于补充未在表单中呈现的结构化属性。", "Fields come from the subplatform. Advanced JSON adds structured attributes not shown in the form.")}</p>
         {agentDraft ? (
           <div className="seller-agent-draft" role="status">
             <div>
-              <strong>对话草稿已准备好</strong>
+              <strong>{text("agentDraftTitle", "对话草稿已准备好", "Conversation draft ready")}</strong>
               <p>{agentDraft.narrative}</p>
             </div>
             <button className="text-action" type="button" onClick={importAgentDraft} disabled={draftImported}>
-              {draftImported ? "已放入编辑器" : "放入编辑器"}
+              {draftImported ? text("agentDraftImportedLabel", "已放入编辑器", "Added to editor") : text("agentDraftImportLabel", "放入编辑器", "Add to editor")}
             </button>
           </div>
         ) : null}
         <form className="seller-upload-form" onSubmit={submit}>
-          <label htmlFor="plugin-seller-display-name"><span>供给名称</span><input id="plugin-seller-display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="由你填写" maxLength={500} required /></label>
-          <label htmlFor="plugin-seller-external-key"><span>内部编号</span><input id="plugin-seller-external-key" value={externalKey} onChange={(event) => setExternalKey(event.target.value)} placeholder="留空则由平台生成" maxLength={256} /></label>
-          <label htmlFor="plugin-seller-asking-amount"><span>报价{currency ? `（${currency}）` : ""}</span><input id="plugin-seller-asking-amount" value={askingAmount} onChange={(event) => setAskingAmount(event.target.value)} inputMode="decimal" placeholder={amountPlaceholder(currencyScale)} required /></label>
-          <label htmlFor="plugin-seller-currency"><span>币种</span><input id="plugin-seller-currency" value={currency} onChange={(event) => setCurrency(event.target.value.toUpperCase())} placeholder="由子平台配置" maxLength={3} readOnly={Boolean(configuredCurrency)} required /></label>
+          <label htmlFor="plugin-seller-display-name"><span>{text("offerNameLabel", "供给名称", "Offer name")}</span><input id="plugin-seller-display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder={text("sellerProvidedPlaceholder", "由你填写", "Enter your own value")} maxLength={500} required /></label>
+          <label htmlFor="plugin-seller-external-key"><span>{text("externalKeyLabel", "内部编号", "Reference")}</span><input id="plugin-seller-external-key" value={externalKey} onChange={(event) => setExternalKey(event.target.value)} placeholder={text("generatedKeyPlaceholder", "留空则由平台生成", "Leave blank to generate")} maxLength={256} /></label>
+          <label htmlFor="plugin-seller-asking-amount"><span>{text("priceLabel", "报价", "Price")}{currency ? `（${currency}）` : ""}</span><input id="plugin-seller-asking-amount" value={askingAmount} onChange={(event) => setAskingAmount(event.target.value)} inputMode="decimal" placeholder={amountPlaceholder(currencyScale, locale)} required /></label>
+          <label htmlFor="plugin-seller-currency"><span>{text("currencyLabel", "币种", "Currency")}</span><input id="plugin-seller-currency" value={currency} onChange={(event) => setCurrency(event.target.value.toUpperCase())} placeholder={text("currencyPlaceholder", "由子平台配置", "Configured by the subplatform")} maxLength={3} readOnly={Boolean(configuredCurrency)} required /></label>
           {fields.map((field) => (
             <label key={field.key} htmlFor={`plugin-seller-attribute-${field.key}`}>
               <span>{field.label}{field.required ? " *" : ""}</span>
               {field.type === "select" ? (
                 <select id={`plugin-seller-attribute-${field.key}`} value={fieldValues[field.key] ?? ""} onChange={(event) => setFieldValues((current) => ({ ...current, [field.key]: event.target.value }))}>
-                  <option value="">请选择</option>
+                  <option value="">{text("selectPlaceholder", "请选择", "Select")}</option>
                   {field.options?.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
               ) : <input id={`plugin-seller-attribute-${field.key}`} type={field.type ?? "text"} value={fieldValues[field.key] ?? ""} onChange={(event) => setFieldValues((current) => ({ ...current, [field.key]: event.target.value }))} placeholder={field.placeholder} required={field.required} />}
@@ -171,19 +177,19 @@ export function SellerDashboard({
           ))}
           {customFields.map((field) => (
             <div className="seller-custom-field" key={field.id}>
-              <input aria-label="自定义字段名" value={field.key} onChange={(event) => setCustomFields((current) => current.map((item) => item.id === field.id ? { ...item, key: event.target.value } : item))} placeholder="字段名" />
-              <input aria-label="自定义字段值" value={field.value} onChange={(event) => setCustomFields((current) => current.map((item) => item.id === field.id ? { ...item, value: event.target.value } : item))} placeholder="字段值" />
-              <button type="button" aria-label="删除自定义字段" onClick={() => setCustomFields((current) => current.filter((item) => item.id !== field.id))}><Trash2 size={16} aria-hidden="true" /></button>
+              <input aria-label={text("customFieldNameLabel", "自定义字段名", "Custom field name")} value={field.key} onChange={(event) => setCustomFields((current) => current.map((item) => item.id === field.id ? { ...item, key: event.target.value } : item))} placeholder={text("customFieldNamePlaceholder", "字段名", "Field name")} />
+              <input aria-label={text("customFieldValueLabel", "自定义字段值", "Custom field value")} value={field.value} onChange={(event) => setCustomFields((current) => current.map((item) => item.id === field.id ? { ...item, value: event.target.value } : item))} placeholder={text("customFieldValuePlaceholder", "字段值", "Field value")} />
+              <button type="button" aria-label={text("removeCustomFieldLabel", "删除自定义字段", "Remove custom field")} onClick={() => setCustomFields((current) => current.filter((item) => item.id !== field.id))}><Trash2 size={16} aria-hidden="true" /></button>
             </div>
           ))}
           <div className="seller-upload-wide seller-form-tools">
-            <button className="text-action" type="button" onClick={() => setCustomFields((current) => [...current, { id: crypto.randomUUID(), key: "", value: "" }])}><Plus size={16} aria-hidden="true" /> 添加字段</button>
-            <button className="text-action" type="button" aria-expanded={advancedOpen} onClick={() => setAdvancedOpen((open) => !open)}>{advancedOpen ? "收起高级资料" : "使用高级 JSON"}</button>
+            <button className="text-action" type="button" onClick={() => setCustomFields((current) => [...current, { id: crypto.randomUUID(), key: "", value: "" }])}><Plus size={16} aria-hidden="true" /> {text("addFieldLabel", "添加字段", "Add field")}</button>
+            <button className="text-action" type="button" aria-expanded={advancedOpen} onClick={() => setAdvancedOpen((open) => !open)}>{advancedOpen ? text("collapseAdvancedLabel", "收起高级资料", "Hide advanced details") : text("advancedJsonLabel", "使用高级 JSON", "Use advanced JSON")}</button>
           </div>
-          {advancedOpen ? <label className="seller-upload-wide" htmlFor="plugin-seller-attributes"><span>高级资料（JSON）</span><textarea id="plugin-seller-attributes" value={advancedAttributes} onChange={(event) => setAdvancedAttributes(event.target.value)} rows={8} spellCheck={false} /></label> : null}
+          {advancedOpen ? <label className="seller-upload-wide" htmlFor="plugin-seller-attributes"><span>{text("advancedDetailsLabel", "高级资料（JSON）", "Advanced details (JSON)")}</span><textarea id="plugin-seller-attributes" value={advancedAttributes} onChange={(event) => setAdvancedAttributes(event.target.value)} rows={8} spellCheck={false} /></label> : null}
           <div className="seller-upload-actions seller-upload-wide">
-            <p><FileUp size={17} aria-hidden="true" /> 提交后状态为“待审核”，平台不会自动发布未经确认的资料。</p>
-            <motion.button className="button button-dark" type="submit" disabled={submitting} whileTap={{ scale: 0.97 }} transition={spring}>{submitting ? "正在提交…" : "上传并提交审核"}{!submitting ? <ArrowRight size={18} aria-hidden="true" /> : null}</motion.button>
+            <p><FileUp size={17} aria-hidden="true" /> {text("reviewStateDescription", "提交后状态为“待审核”，平台不会自动发布未经确认的资料。", "Submissions enter review; the platform never publishes unconfirmed details automatically.")}</p>
+            <motion.button className="button button-dark" type="submit" disabled={submitting} whileTap={{ scale: 0.97 }} transition={spring}>{submitting ? text("submittingLabel", "正在提交…", "Submitting…") : text("submitForReviewLabel", "上传并提交审核", "Submit for review")}{!submitting ? <ArrowRight size={18} aria-hidden="true" /> : null}</motion.button>
           </div>
         </form>
       </section>
@@ -235,8 +241,10 @@ function attributesFromForm(
   return attributes;
 }
 
-function amountPlaceholder(scale: number): string {
-  return scale > 0 ? `例如 1000.${"0".repeat(Math.min(scale, 2))}` : "例如 1000";
+function amountPlaceholder(scale: number, locale: PluginLocale): string {
+  return scale > 0
+    ? (locale === "en" ? `e.g. 1000.${"0".repeat(Math.min(scale, 2))}` : `例如 1000.${"0".repeat(Math.min(scale, 2))}`)
+    : (locale === "en" ? "e.g. 1000" : "例如 1000");
 }
 
 function toMinorUnits(value: string, scale: number): string | null {

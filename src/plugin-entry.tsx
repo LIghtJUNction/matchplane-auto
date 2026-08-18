@@ -5,13 +5,14 @@ import { BuyerDashboard } from "./components/BuyerDashboard";
 import { PlatformDashboard } from "./components/PlatformDashboard";
 import { SellerDashboard } from "./components/SellerDashboard";
 import type { VehicleListing, WorkspaceRole } from "./types";
+import { localizedCopy, type PluginCopy, type PluginLocale } from "./copy";
 import "./styles.css";
 
 type PluginContext = {
   role?: WorkspaceRole;
   path?: string;
   theme?: "light" | "dark";
-  locale?: "zh" | "en";
+  locale?: PluginLocale;
   contextToken?: string;
   currency?: string;
   currencyScale?: number;
@@ -23,6 +24,7 @@ type PluginContext = {
     terms: Record<string, unknown>;
   };
   ui?: {
+    copy?: PluginCopy;
     supplyFields?: Array<{
       key: string;
       label: string;
@@ -46,10 +48,11 @@ type ParentResponse = { ok: boolean; error?: string };
 function AutoPlugin() {
   const [role, setRole] = useState<WorkspaceRole>("buyer");
   const [recommendations, setRecommendations] = useState<VehicleListing[]>([]);
-  const [notice, setNotice] = useState("等待根平台上下文");
+  const [notice, setNotice] = useState("");
   const [contextToken, setContextToken] = useState<string | null>(null);
   const [platformContext, setPlatformContext] = useState<PluginContext>({});
   const contextTokenRef = useRef<string | null>(null);
+  const platformContextRef = useRef<PluginContext>({});
   const pendingRequests = useRef(new Map<string, (response: ParentResponse) => void>());
 
   useEffect(() => {
@@ -73,11 +76,14 @@ function AutoPlugin() {
       if (event.data.type === "match.results" && event.data.contextToken === contextTokenRef.current) {
         const payload = isRecord(event.data.payload) ? event.data.payload : null;
         const hosted = payload && Array.isArray(payload.listings) ? payload.listings : [];
-        setRecommendations(hosted.map((item, index) => mapHostedListing(item, index)).filter((item): item is VehicleListing => item !== null));
+        const context = platformContextRef.current;
+        const locale = context.locale ?? "zh";
+        setRecommendations(hosted.map((item, index) => mapHostedListing(item, index, locale, context.ui?.copy)).filter((item): item is VehicleListing => item !== null));
         return;
       }
       if (event.data.type !== "platform.context" || !isRecord(event.data.payload)) return;
       const context = event.data.payload as PluginContext;
+      platformContextRef.current = context;
       setPlatformContext(context);
       if (context.theme === "light" || context.theme === "dark") {
         document.documentElement.dataset.theme = context.theme;
@@ -91,7 +97,9 @@ function AutoPlugin() {
         contextTokenRef.current = context.contextToken;
         setContextToken(context.contextToken);
       }
-      setNotice(context.path ? `当前路径：${context.path}` : "已连接根平台");
+      setNotice(context.path
+        ? `${localizedCopy(context.locale ?? "zh", context.ui?.copy, "currentPathPrefix", "当前路径", "Current path")}: ${context.path}`
+        : localizedCopy(context.locale ?? "zh", context.ui?.copy, "connectedNotice", "已连接根平台", "Connected to the root platform"));
     };
     window.addEventListener("message", onMessage);
     window.parent.postMessage({ protocol: "matchplane.plugin/v1", type: "plugin.ready", version: 1 }, "*");
@@ -156,13 +164,15 @@ function AutoPlugin() {
       <div className="plugin-context" role="status">{notice}</div>
       {role === "buyer" ? (
         <>
-          <ContactProfile locale={platformContext.locale} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
-          <BuyerDashboard recommendations={recommendations} onOpenListing={openListing} onNotice={notify} />
+          <ContactProfile locale={platformContext.locale} copy={platformContext.ui?.copy} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
+          <BuyerDashboard recommendations={recommendations} onOpenListing={openListing} onNotice={notify} locale={platformContext.locale} copy={platformContext.ui?.copy} />
         </>
       ) : role === "seller" ? (
         <>
-          <ContactProfile locale={platformContext.locale} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
+          <ContactProfile locale={platformContext.locale} copy={platformContext.ui?.copy} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
           <SellerDashboard
+            locale={platformContext.locale}
+            copy={platformContext.ui?.copy}
             onNotice={notify}
             onSubmitSupply={submitSupply}
             currency={platformContext.currency}
@@ -187,7 +197,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function mapHostedListing(value: unknown, index: number): VehicleListing | null {
+function mapHostedListing(value: unknown, index: number, locale: PluginLocale, copy: PluginCopy | undefined): VehicleListing | null {
   if (!isRecord(value)) return null;
   const id = textValue(value.id);
   const title = textValue(value.title);
@@ -211,18 +221,18 @@ function mapHostedListing(value: unknown, index: number): VehicleListing | null 
     id,
     title,
     subtitle: textValue(value.subtitle) || "",
-    price: textValue(value.price) || "面议",
+    price: textValue(value.price) || localizedCopy(locale, copy, "noPriceLabel", "面议", "Price on request"),
     monthly: textValue(value.priceLabel) || "",
     mileage: fact("mileage", "里程") || "—",
-    location: textValue(value.location) || "未提供",
+    location: textValue(value.location) || localizedCopy(locale, copy, "locationUnavailableLabel", "未提供", "Not provided"),
     energy: fact("energy", "能源") || "—",
     year: fact("year", "年份") || "—",
     matchScore: score,
     accent,
-    reasons: reasons.length ? reasons : ["根据当前需求排序"],
+    reasons: reasons.length ? reasons : [localizedCopy(locale, copy, "defaultMatchReason", "根据当前需求排序", "Ranked against your current need")],
     trust,
-    seller: textValue(value.seller) || "供给方",
-    response: textValue(value.response) || "平台撮合中",
+    seller: textValue(value.seller) || localizedCopy(locale, copy, "supplySideLabel", "供给方", "Supply side"),
+    response: textValue(value.response) || localizedCopy(locale, copy, "matchingInProgressLabel", "平台撮合中", "Matching in progress"),
   };
 }
 
@@ -246,15 +256,18 @@ function textArray(value: unknown): string[] {
 
 function ContactProfile({
   locale = "zh",
+  copy,
   fields = [],
   submitContact,
   onNotice,
 }: {
-  locale?: "zh" | "en";
+  locale?: PluginLocale;
+  copy?: PluginCopy;
   fields?: NonNullable<PluginContext["ui"]>["contactFields"];
   submitContact: (contact: Record<string, string>) => Promise<void>;
   onNotice: (message: string) => void;
 }) {
+  const text = (key: string, fallbackZh: string, fallbackEn = fallbackZh) => localizedCopy(locale, copy, key, fallbackZh, fallbackEn);
   const configured = fields ?? [];
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -266,20 +279,20 @@ function ContactProfile({
     );
     const missing = configured.find((field) => field.required && !contact[field.key]);
     if (missing) {
-      onNotice(`${missing.label}不能为空`);
+      onNotice(locale === "en" ? `${missing.label} is required` : `${missing.label}不能为空`);
       return;
     }
     if (!Object.keys(contact).length) {
-      onNotice("至少填写一种联系方式");
+      onNotice(text("contactRequiredNotice", "至少填写一种联系方式", "Add at least one contact channel"));
       return;
     }
     setSaving(true);
     try {
       await submitContact(contact);
       setValues({});
-      onNotice("联系方式已加密保存；双方同意后才会交换");
+      onNotice(text("contactProfileSavedNotice", "联系方式已加密保存；双方同意后才会交换", "Contact details are encrypted and exchanged only after consent"));
     } catch (error) {
-      onNotice(error instanceof Error ? error.message : "联系方式保存失败，请稍后重试");
+      onNotice(error instanceof Error ? error.message : text("contactSaveFailedNotice", "联系方式保存失败，请稍后重试", "Contact details could not be saved. Try again"));
     } finally {
       setSaving(false);
     }
@@ -289,9 +302,9 @@ function ContactProfile({
     <section className="surface contact-profile-card" aria-labelledby="auto-contact-profile-title">
       <div className="contact-profile-heading">
         <div>
-          <p className="eyebrow">{locale === "en" ? "Contact" : "联系方式"}</p>
-          <h2 id="auto-contact-profile-title">{locale === "en" ? "Choose a channel to exchange after consent" : "设置双方同意后交换的渠道"}</h2>
-          <p>{locale === "en" ? "The fields are configured by this subplatform and unlock only after both sides agree." : "联系方式字段由当前子平台配置，只有匹配双方同意后才会解锁。"}</p>
+          <p className="eyebrow">{text("contactEyebrow", "联系方式", "Contact")}</p>
+          <h2 id="auto-contact-profile-title">{text("contactTitle", "设置双方同意后交换的渠道", "Choose a channel to exchange after consent")}</h2>
+          <p>{text("contactDescription", "联系方式字段由当前子平台配置，只有匹配双方同意后才会解锁。", "The fields are configured by this subplatform and unlock only after both sides agree.")}</p>
         </div>
       </div>
       {configured.length ? <form className="contact-profile-form" onSubmit={save}>
@@ -309,10 +322,10 @@ function ContactProfile({
           </label>
         ))}
         <div className="contact-profile-footer">
-          <span>{locale === "en" ? "Encrypted · released after consent" : "加密保存 · 双方同意后释放"}</span>
-          <button className="button button-dark" type="submit" disabled={saving}>{saving ? (locale === "en" ? "Saving…" : "保存中…") : (locale === "en" ? "Save contact" : "保存联系方式")}</button>
+          <span>{text("contactEncryptedLabel", "加密保存 · 双方同意后释放", "Encrypted · released after consent")}</span>
+          <button className="button button-dark" type="submit" disabled={saving}>{saving ? text("savingLabel", "保存中…", "Saving…") : text("saveContactLabel", "保存联系方式", "Save contact")}</button>
         </div>
-      </form> : <p className="contact-profile-empty" role="status">{locale === "en" ? "This subplatform has not configured contact fields yet." : "当前子平台尚未配置联系方式字段。"}</p>}
+      </form> : <p className="contact-profile-empty" role="status">{text("contactFieldsEmpty", "当前子平台尚未配置联系方式字段。", "This subplatform has not configured contact fields yet.")}</p>}
     </section>
   );
 }
