@@ -156,12 +156,12 @@ function AutoPlugin() {
       <div className="plugin-context" role="status">{notice}</div>
       {role === "buyer" ? (
         <>
-          <ContactProfile onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
+          <ContactProfile locale={platformContext.locale} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
           <BuyerDashboard recommendations={recommendations} onOpenListing={openListing} onNotice={notify} />
         </>
       ) : role === "seller" ? (
         <>
-          <ContactProfile onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
+          <ContactProfile locale={platformContext.locale} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
           <SellerDashboard
             onNotice={notify}
             onSubmitSupply={submitSupply}
@@ -245,20 +245,17 @@ function textArray(value: unknown): string[] {
 }
 
 function ContactProfile({
+  locale = "zh",
   fields = [],
   submitContact,
   onNotice,
 }: {
+  locale?: "zh" | "en";
   fields?: NonNullable<PluginContext["ui"]>["contactFields"];
   submitContact: (contact: Record<string, string>) => Promise<void>;
   onNotice: (message: string) => void;
 }) {
-  const configured = fields?.length ? fields : [
-    { key: "phone", label: "电话", type: "tel" as const },
-    { key: "wechat", label: "微信", type: "text" as const },
-    { key: "qq", label: "QQ", type: "text" as const },
-    { key: "email", label: "邮箱", type: "email" as const },
-  ];
+  const configured = fields ?? [];
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -292,12 +289,12 @@ function ContactProfile({
     <section className="surface contact-profile-card" aria-labelledby="auto-contact-profile-title">
       <div className="contact-profile-heading">
         <div>
-          <p className="eyebrow">联系方式</p>
-          <h2 id="auto-contact-profile-title">设置双方同意后交换的渠道</h2>
-          <p>电话、微信、QQ、邮箱等渠道只会加密保存，匹配双方同意后才会解锁。</p>
+          <p className="eyebrow">{locale === "en" ? "Contact" : "联系方式"}</p>
+          <h2 id="auto-contact-profile-title">{locale === "en" ? "Choose a channel to exchange after consent" : "设置双方同意后交换的渠道"}</h2>
+          <p>{locale === "en" ? "The fields are configured by this subplatform and unlock only after both sides agree." : "联系方式字段由当前子平台配置，只有匹配双方同意后才会解锁。"}</p>
         </div>
       </div>
-      <form className="contact-profile-form" onSubmit={save}>
+      {configured.length ? <form className="contact-profile-form" onSubmit={save}>
         {configured.map((field) => (
           <label key={field.key} htmlFor={`auto-contact-${field.key}`}>
             <span>{field.label}{field.required ? " *" : ""}</span>
@@ -312,10 +309,10 @@ function ContactProfile({
           </label>
         ))}
         <div className="contact-profile-footer">
-          <span>加密保存 · 双方同意后释放</span>
-          <button className="button button-dark" type="submit" disabled={saving}>{saving ? "保存中…" : "保存联系方式"}</button>
+          <span>{locale === "en" ? "Encrypted · released after consent" : "加密保存 · 双方同意后释放"}</span>
+          <button className="button button-dark" type="submit" disabled={saving}>{saving ? (locale === "en" ? "Saving…" : "保存中…") : (locale === "en" ? "Save contact" : "保存联系方式")}</button>
         </div>
-      </form>
+      </form> : <p className="contact-profile-empty" role="status">{locale === "en" ? "This subplatform has not configured contact fields yet." : "当前子平台尚未配置联系方式字段。"}</p>}
     </section>
   );
 }

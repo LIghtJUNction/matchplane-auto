@@ -2003,6 +2003,71 @@ main {
 .contact-profile-form input:focus { border-color: var(--sky); box-shadow: 0 0 0 0.12rem rgba(106, 155, 204, 0.2); }
 .contact-profile-footer { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 0.8rem; }
 .contact-profile-footer > span { color: var(--muted); font-size: 0.68rem; }
+.contact-profile-empty { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.55; }
+
+/* The host sends the user's theme through the plugin context. Keep the mounted
+   package legible without requiring it to share the root stylesheet. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f3f1eb;
+  --ink-soft: #d8d5cc;
+  --muted: #aaa9a1;
+  --ivory: #232321;
+  --paper: #151514;
+  --paper-deep: #2c2c29;
+  --line: rgba(243, 241, 235, 0.15);
+  --line-strong: rgba(243, 241, 235, 0.28);
+  --surface: rgba(35, 35, 33, 0.9);
+  --shadow-small: 0 0.45rem 1.5rem rgba(0, 0, 0, 0.22);
+  --shadow-large: 0 1.4rem 4.5rem rgba(0, 0, 0, 0.42);
+}
+
+:root[data-theme="dark"] .app-header,
+:root[data-theme="dark"] .role-switcher,
+:root[data-theme="dark"] .icon-button,
+:root[data-theme="dark"] .profile-button,
+:root[data-theme="dark"] .button-quiet,
+:root[data-theme="dark"] .floating-match-card,
+:root[data-theme="dark"] .discovery-panel,
+:root[data-theme="dark"] .save-button,
+:root[data-theme="dark"] .sheet-header,
+:root[data-theme="dark"] .sheet-footer {
+  background: rgba(35, 35, 33, 0.86);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .buyer-hero,
+:root[data-theme="dark"] .vehicle-card,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .listing-sheet,
+:root[data-theme="dark"] .mode-dialog,
+:root[data-theme="dark"] .contact-profile-card {
+  background: var(--ivory);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .organic-shape { background: rgba(243, 241, 235, 0.14); }
+:root[data-theme="dark"] .secure-status { color: #d7ebe4; }
+:root[data-theme="dark"] .hero-copy h1 span { color: #a8c4b9; }
+:root[data-theme="dark"] .match-score,
+:root[data-theme="dark"] .sheet-match { color: #d7ebe4; }
+:root[data-theme="dark"] .search-field,
+:root[data-theme="dark"] .reason-line,
+:root[data-theme="dark"] .trust-section,
+:root[data-theme="dark"] .dialog-checks,
+:root[data-theme="dark"] .contact-profile-form input,
+:root[data-theme="dark"] .seller-upload input,
+:root[data-theme="dark"] .seller-upload select,
+:root[data-theme="dark"] .seller-upload textarea,
+:root[data-theme="dark"] .sheet-header button {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .offline-contact-card { background: #0d0d0c; }
+:root[data-theme="dark"] .offline-contact-card p,
+:root[data-theme="dark"] .contact-options span { color: rgba(243, 241, 235, 0.72); }
 
 
 @media (max-width: 40rem) {
