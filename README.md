@@ -31,13 +31,15 @@ the server-side credential; until then the root matcher is the deterministic fal
 
 ## Publishing
 
-Builds are immutable. A root operator registers a repository URL or a verified archive, validates
-the manifest, pins a commit/digest, and then records the subplatform path. Arbitrary server-side
-code from a plugin is never executed by the root service.
+The source commit and generated static artifact are still recorded by digest. A root operator
+registers a repository URL or a verified archive, validates the manifest, and then records the
+subplatform path. Arbitrary server-side code from a plugin is never executed by the root service.
 
-The package does not pin a Bun runtime or a Bun release in its manifest. The isolated builder
-resolves `bun` from its operator-managed `PATH` (or from the absolute
-`MATCHPLANE_SUBPLATFORM_BUILDER_BUN` setting), so an operator may install the current Bun release
-with Bun's official installer without changing this package. JavaScript dependencies use the
-`latest` tag; `bun.lock` records the resolved integrity data for a repeatable build until the
-operator intentionally refreshes the package.
+This package deliberately opts into `assets.dependencyPolicy: "latest"`: it does not ship a
+`bun.lock`, and the isolated builder resolves the current versions declared by `package.json` on
+each build. The package also does not pin a Bun runtime or release. The builder resolves `bun`
+from its operator-managed `PATH` (or from the absolute `MATCHPLANE_SUBPLATFORM_BUILDER_BUN`
+setting), so an operator may install the current Bun release with Bun's official installer without
+changing this package. Every build still records source, manifest and artifact digests; operators
+who need reproducibility should switch the package back to the default locked policy and commit a
+lockfile.
