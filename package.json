@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "bun run check && bun run build.mjs",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit && bun run agent:check",
+    "agent:check": "tsc -p agent/tsconfig.json --noEmit",
+    "agent:test": "bun test agent/src/server.test.ts",
+    "agent:serve": "bun run agent/src/server.ts"
   },
   "dependencies": {
     "lucide-react": "latest",
@@ -14,6 +17,7 @@
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "typescript": "latest"

@@ -24,10 +24,33 @@ The adapter contains no seeded vehicle records or fabricated performance metrics
 schema-defined vehicle JSON through the root upload callback; the root stores it as a pending review
 submission and only an approved record is eligible for buyer matching.
 
-This package does not ship a retrieval index or MCP server, so its manifest intentionally declares
-no MCP tools. A deployment that wants AI/vector retrieval or other Agent tools must provide a
-separate child-owned endpoint, add only the implemented tool names to the manifest, and configure
-the server-side credential; until then the root matcher is the deterministic fallback.
+## Child Agent adapter
+
+This package includes a small, package-owned Bun Agent/MCP reference service under `agent/`. It
+implements the stable root ABI without moving vehicle fields, prompts or vector-store choices
+into the root platform:
+
+- `catalog.upsert` stores a generic public offer projection and only indexes `active` offers.
+- `retrieval.query` returns `matchplane.retrieval/v1` candidates with canonical `offer_id`,
+  explainable reasons and explicit low-evidence risks. The reference implementation uses a
+  bounded SQLite lexical index; a production operator may replace it with a vector-backed
+  implementation behind the same MCP tools.
+- `media.upload` stores bounded attachments in a content-addressed child directory and returns an
+  opaque `media://` reference. The basic scanner is deliberately conservative; production should
+  put an approved malware/image scanning service in front of durable publication.
+
+Run it locally with:
+
+```sh
+MATCHPLANE_AUTO_MCP_TOKEN=change-me bun run agent:serve
+```
+
+The endpoint is `http://127.0.0.1:8787/mcp` by default. In production set
+`MATCHPLANE_AUTO_PLATFORM_PATH`, `MATCHPLANE_AUTO_TENANT_ID`, `MATCHPLANE_AUTO_DOMAIN_ID`,
+`MATCHPLANE_AUTO_MCP_TOKEN` and a persistent `MATCHPLANE_AUTO_DATA_DIR`; expose it through an
+operator-controlled HTTPS endpoint and bind the manifest key `used-car` in
+`MATCHPLANE_SUBPLATFORM_MCP_ENDPOINTS_JSON`. The service does not create MatchPlane accounts,
+issue capability tokens, return contact details, or settle payments.
 
 ## Publishing
 

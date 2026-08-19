@@ -163,7 +163,8 @@
     "protocol": "matchplane.agent/v1",
     "stages": ["merchant", "inventory"],
     "skills": ["matchplane.matching.v1"],
-    "mcpTools": []
+    "mcpTools": ["catalog.upsert", "retrieval.query", "media.upload"],
+    "mcpServerKey": "used-car"
   },
   "assets": {
     "staticDirectory": "dist",
