@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, FileUp, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowRight, FileUp, Plus, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 
 import { localizedCopy, type PluginCopy, type PluginLocale } from "../copy";
@@ -131,18 +131,12 @@ export function SellerDashboard({
 
   return (
     <div className="dashboard seller-dashboard">
-      <section className="workspace-heading">
+      <section className="auto-workbench-intro seller-workbench-intro" aria-labelledby="auto-seller-title">
         <div>
-          <p className="eyebrow">{text("sellerWorkspaceLabel", "供给方工作台", "Supply workspace")}</p>
-          <h1>{text("sellerHeroTitle", "提交你的资料，平台负责找到合适的需求。", "Share your offer; the platform finds the right demand.")}</h1>
-          <p>{text("sellerHeroDescription", "页面字段来自当前子平台 manifest；根平台只负责校验、审核和撮合，不替你生成业务内容。", "Fields come from this subplatform manifest. The root validates, reviews, and matches without inventing your business data.")}</p>
+          <p className="eyebrow">{text("sellerWorkspaceLabel", "车源供给", "Vehicle supply")}</p>
+          <h1 id="auto-seller-title">{text("sellerHeroTitle", "提交真实车源，等待合适的需求。", "Publish a real offer and wait for the right demand.")}</h1>
+          <p>{text("sellerHeroDescription", "字段由当前子平台定义；提交后进入审核，审核通过才会进入买方匹配。", "Fields belong to this subplatform. Submitted offers enter review before buyer matching.")}</p>
         </div>
-        <span className="seller-mode-note"><ShieldCheck size={16} aria-hidden="true" /> {text("protectedIdentityLabel", "账号和联系方式由根平台保护", "Identity and contact details are protected by the root")}</span>
-      </section>
-
-      <section className="seller-status-summary" aria-label={text("supplyStatusLabel", "供给资料状态", "Offer status")}>
-        <FileUp size={19} aria-hidden="true" />
-        <div><strong>{text("supplySubmissionLabel", "资料提交", "Offer submission")}</strong><small>{text("supplySubmissionDescription", "提交后进入当前子平台的审核流程", "After submission, the subplatform reviews it")}</small></div>
       </section>
 
       <section className="surface seller-upload" aria-labelledby="seller-upload-title">
