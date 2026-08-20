@@ -2088,3 +2088,440 @@ main {
   .contact-profile-form { grid-template-columns: 1fr; }
   .contact-profile-footer { align-items: stretch; flex-direction: column; }
 }
+
+/* Focused subplatform workspace ------------------------------------------------ */
+.plugin-app {
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.plugin-workspace-header {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  min-height: 4rem;
+  padding: 0.65rem max(1rem, env(safe-area-inset-right)) 0.65rem max(1rem, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.plugin-workspace-identity {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.plugin-workspace-identity strong {
+  overflow: hidden;
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plugin-workspace-identity span,
+.auto-results-toolbar > span {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.plugin-settings-trigger,
+.plugin-settings-close,
+.auto-save-button {
+  border: 1px solid var(--line);
+  background: var(--ivory);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.plugin-settings-trigger {
+  min-height: 2.65rem;
+  padding: 0 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.plugin-settings-trigger:hover,
+.plugin-settings-trigger:focus-visible,
+.plugin-settings-close:hover,
+.plugin-settings-close:focus-visible {
+  background: var(--paper-deep);
+}
+
+.plugin-notice {
+  width: min(100% - 2rem, 64rem);
+  margin: 0.8rem auto 0;
+  padding: 0.68rem 0.82rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: var(--ivory);
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.plugin-app .dashboard {
+  width: min(100% - 2rem, 64rem);
+  margin: 0 auto;
+  padding: clamp(2.25rem, 6vw, 5.25rem) 0 5rem;
+}
+
+.auto-workbench-intro {
+  max-width: 46rem;
+}
+
+.auto-workbench-intro h1 {
+  max-width: 14ch;
+  margin-top: 0.75rem;
+  font-size: clamp(2.25rem, 5vw, 4.35rem);
+  font-weight: 620;
+  letter-spacing: -0.065em;
+  line-height: 0.98;
+}
+
+.auto-workbench-intro > div > p:last-child,
+.auto-workbench-intro > p:last-child {
+  max-width: 39rem;
+  margin-top: 0.9rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.auto-results-toolbar {
+  margin-top: 2.5rem;
+  padding-bottom: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.auto-search-field {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  color: var(--muted);
+}
+
+.auto-search-field input {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.auto-search-field input::placeholder { color: var(--muted); }
+
+.auto-results { margin-top: 1rem; }
+
+.auto-vehicle-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.auto-vehicle-card {
+  min-width: 0;
+  padding: 0.7rem;
+  display: grid;
+  grid-template-columns: 7.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--ivory);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.auto-vehicle-card:hover { border-color: var(--line-strong); }
+
+.auto-vehicle-visual .vehicle-visual {
+  min-height: 5.5rem;
+  border-radius: 0.72rem;
+}
+
+.auto-vehicle-visual .vehicle-visual svg { width: 2.65rem; height: 2.65rem; }
+
+.auto-vehicle-copy { min-width: 0; }
+
+.auto-vehicle-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+
+.auto-vehicle-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.auto-vehicle-meta > span:first-child { color: #42665a; font-weight: 700; }
+
+.auto-vehicle-title {
+  max-width: 100%;
+  margin-top: 0.34rem;
+  padding: 0;
+  display: block;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 680;
+  letter-spacing: -0.025em;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auto-vehicle-title:hover,
+.auto-vehicle-title:focus-visible { color: #42665a; }
+
+.auto-vehicle-copy > p {
+  margin-top: 0.15rem;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auto-vehicle-facts,
+.auto-vehicle-reason {
+  margin-top: 0.38rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.auto-vehicle-reason { color: var(--muted); }
+.auto-vehicle-reason svg { color: #527568; flex: 0 0 auto; }
+
+.auto-vehicle-actions {
+  min-width: 5.25rem;
+  display: grid;
+  justify-items: end;
+  gap: 0.6rem;
+}
+
+.auto-vehicle-actions strong { font-size: 0.82rem; }
+
+.auto-save-button,
+.plugin-settings-close {
+  width: 2.55rem;
+  height: 2.55rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.7rem;
+}
+
+.auto-save-button.is-saved {
+  border-color: #527568;
+  background: #d9e8e2;
+  color: #31554a;
+}
+
+.auto-empty-state {
+  max-width: 32rem;
+  margin: 4rem auto;
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  color: var(--muted);
+}
+
+.auto-empty-state h2 { color: var(--ink); font-size: 1.2rem; letter-spacing: -0.035em; }
+.auto-empty-state p { font-size: 0.82rem; line-height: 1.55; }
+.auto-empty-state button { min-height: 2.55rem; padding: 0 0.8rem; border: 1px solid var(--line); border-radius: 0.7rem; background: var(--ivory); cursor: pointer; }
+
+.seller-workbench-intro { margin-bottom: 2.25rem; }
+
+.seller-upload {
+  padding: clamp(1rem, 3vw, 1.65rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--ivory);
+}
+
+.seller-upload .section-heading { margin-bottom: 0; }
+.seller-upload .section-heading h2 { font-size: 1.35rem; letter-spacing: -0.04em; }
+.seller-upload-intro { margin-top: 0.55rem; color: var(--muted); font-size: 0.78rem; line-height: 1.55; }
+
+.seller-agent-draft {
+  margin-top: 1.1rem;
+  padding: 0.8rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.78rem;
+  background: var(--paper);
+}
+
+.seller-agent-draft strong { font-size: 0.78rem; }
+.seller-agent-draft p { margin-top: 0.25rem; color: var(--muted); font-size: 0.72rem; line-height: 1.45; }
+
+.seller-upload-form {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.seller-upload-form > label,
+.contact-profile-form > label {
+  min-width: 0;
+  display: grid;
+  gap: 0.4rem;
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.seller-upload-form input,
+.seller-upload-form select,
+.seller-upload-form textarea,
+.contact-profile-form input {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.55rem 0.68rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  outline: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.seller-upload-form textarea { min-height: 9rem; resize: vertical; line-height: 1.45; }
+.seller-upload-form input:focus-visible,
+.seller-upload-form select:focus-visible,
+.seller-upload-form textarea:focus-visible,
+.contact-profile-form input:focus-visible { border-color: #527568; }
+
+.seller-upload-wide { grid-column: 1 / -1; }
+
+.seller-custom-field {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 2.55rem;
+  gap: 0.55rem;
+}
+
+.seller-custom-field button {
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.seller-form-tools { display: flex; align-items: center; gap: 1rem; }
+.seller-form-tools .text-action { padding: 0; border: 0; background: transparent; color: #42665a; cursor: pointer; font: inherit; font-size: 0.75rem; }
+
+.seller-upload-actions {
+  padding-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.seller-upload-actions p { max-width: 32rem; display: flex; align-items: flex-start; gap: 0.45rem; color: var(--muted); font-size: 0.7rem; line-height: 1.45; }
+
+.plugin-settings-overlay {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  padding: 1rem;
+  display: grid;
+  place-items: center;
+}
+
+.plugin-settings-backdrop { position: absolute; inset: 0; border: 0; background: rgba(20, 20, 19, 0.38); cursor: default; }
+
+.plugin-settings-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 34rem);
+  max-height: min(42rem, calc(100dvh - 2rem));
+  overflow: auto;
+  padding: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--ivory);
+  box-shadow: var(--shadow-large);
+}
+
+.plugin-settings-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.plugin-settings-dialog h2 { margin-top: 0.18rem; font-size: 1.45rem; letter-spacing: -0.045em; }
+.plugin-settings-dialog .contact-profile-card { margin-top: 1.2rem; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.contact-profile-heading h3 { margin-top: 0.35rem; font-size: 1rem; letter-spacing: -0.03em; }
+.contact-profile-heading p:last-child { margin-top: 0.45rem; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.contact-profile-form { margin-top: 1rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.contact-profile-footer { grid-column: 1 / -1; padding-top: 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.68rem; }
+.contact-profile-empty { margin-top: 1rem; color: var(--muted); font-size: 0.75rem; }
+
+:root[data-theme="dark"] .plugin-workspace-header,
+:root[data-theme="dark"] .plugin-settings-dialog,
+:root[data-theme="dark"] .auto-vehicle-card,
+:root[data-theme="dark"] .seller-upload,
+:root[data-theme="dark"] .plugin-notice { background: var(--ivory); }
+
+:root[data-theme="dark"] .auto-search-field input,
+:root[data-theme="dark"] .seller-upload-form input,
+:root[data-theme="dark"] .seller-upload-form select,
+:root[data-theme="dark"] .seller-upload-form textarea,
+:root[data-theme="dark"] .contact-profile-form input { background: var(--paper); color: var(--ink); }
+
+@media (max-width: 40rem) {
+  .plugin-workspace-header { min-height: 3.65rem; }
+  .plugin-settings-trigger { width: 2.65rem; padding: 0; justify-content: center; }
+  .plugin-settings-trigger span { display: none; }
+  .plugin-app .dashboard { width: min(100% - 1.4rem, 64rem); padding-top: 2.35rem; }
+  .auto-workbench-intro h1 { font-size: clamp(2rem, 11vw, 3rem); }
+  .auto-results-toolbar { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
+  .auto-vehicle-card { grid-template-columns: 5.3rem minmax(0, 1fr); gap: 0.7rem; }
+  .auto-vehicle-visual .vehicle-visual { min-height: 5rem; }
+  .auto-vehicle-actions { grid-column: 2; grid-row: 2; min-width: 0; display: flex; align-items: center; justify-content: space-between; }
+  .seller-upload-form,
+  .contact-profile-form { grid-template-columns: 1fr; }
+  .seller-upload-wide,
+  .contact-profile-footer { grid-column: auto; }
+  .seller-custom-field { grid-template-columns: minmax(0, 1fr) 2.55rem; }
+  .seller-custom-field input:first-child { grid-column: 1 / -1; }
+  .seller-agent-draft,
+  .seller-upload-actions,
+  .contact-profile-footer { align-items: stretch; flex-direction: column; }
+  .seller-upload-actions .button { width: 100%; }
+  .plugin-settings-overlay { padding: 0; align-items: end; }
+  .plugin-settings-dialog { width: 100%; max-height: calc(100dvh - 0.5rem); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 1rem 1rem 0 0; }
+}

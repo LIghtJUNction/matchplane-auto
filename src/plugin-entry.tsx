@@ -1,5 +1,7 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useId, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { Settings2, X } from "lucide-react";
 
 import { BuyerDashboard } from "./components/BuyerDashboard";
 import { PlatformDashboard } from "./components/PlatformDashboard";
@@ -49,6 +51,7 @@ function AutoPlugin() {
   const [role, setRole] = useState<WorkspaceRole>("buyer");
   const [recommendations, setRecommendations] = useState<VehicleListing[]>([]);
   const [notice, setNotice] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [contextToken, setContextToken] = useState<string | null>(null);
   const [platformContext, setPlatformContext] = useState<PluginContext>({});
   const contextTokenRef = useRef<string | null>(null);
@@ -97,9 +100,7 @@ function AutoPlugin() {
         contextTokenRef.current = context.contextToken;
         setContextToken(context.contextToken);
       }
-      setNotice(context.path
-        ? `${localizedCopy(context.locale ?? "zh", context.ui?.copy, "currentPathPrefix", "当前路径", "Current path")}: ${context.path}`
-        : localizedCopy(context.locale ?? "zh", context.ui?.copy, "connectedNotice", "已连接根平台", "Connected to the root platform"));
+      setNotice("");
     };
     window.addEventListener("message", onMessage);
     window.parent.postMessage({ protocol: "matchplane.plugin/v1", type: "plugin.ready", version: 1 }, "*");
@@ -161,27 +162,31 @@ function AutoPlugin() {
 
   return (
     <main className="plugin-app">
-      <div className="plugin-context" role="status">{notice}</div>
+      <header className="plugin-workspace-header">
+        <div className="plugin-workspace-identity">
+          <strong>Matx Auto</strong>
+          <span>{role === "seller" ? localizedCopy(platformContext.locale ?? "zh", platformContext.ui?.copy, "supplyRoleLabel", "卖方", "Seller") : localizedCopy(platformContext.locale ?? "zh", platformContext.ui?.copy, "demandRoleLabel", "买方", "Buyer")}</span>
+        </div>
+        <button className="plugin-settings-trigger" type="button" onClick={() => setSettingsOpen(true)} aria-haspopup="dialog" aria-expanded={settingsOpen}>
+          <Settings2 size={17} aria-hidden="true" />
+          <span>{localizedCopy(platformContext.locale ?? "zh", platformContext.ui?.copy, "settingsLabel", "设置", "Settings")}</span>
+        </button>
+      </header>
+      {notice ? <p className="plugin-notice" role="status">{notice}</p> : null}
       {role === "buyer" ? (
-        <>
-          <ContactProfile locale={platformContext.locale} copy={platformContext.ui?.copy} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
-          <BuyerDashboard recommendations={recommendations} onOpenListing={openListing} onNotice={notify} locale={platformContext.locale} copy={platformContext.ui?.copy} />
-        </>
+        <BuyerDashboard recommendations={recommendations} onOpenListing={openListing} onNotice={notify} locale={platformContext.locale} copy={platformContext.ui?.copy} />
       ) : role === "seller" ? (
-        <>
-          <ContactProfile locale={platformContext.locale} copy={platformContext.ui?.copy} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
-          <SellerDashboard
-            locale={platformContext.locale}
-            copy={platformContext.ui?.copy}
-            onNotice={notify}
-            onSubmitSupply={submitSupply}
-            currency={platformContext.currency}
-            currencyScale={platformContext.currencyScale}
-            supplyFields={platformContext.ui?.supplyFields}
-            assetSchema={platformContext.assetSchema}
-            agentDraft={platformContext.agentDraft}
-          />
-        </>
+        <SellerDashboard
+          locale={platformContext.locale}
+          copy={platformContext.ui?.copy}
+          onNotice={notify}
+          onSubmitSupply={submitSupply}
+          currency={platformContext.currency}
+          currencyScale={platformContext.currencyScale}
+          supplyFields={platformContext.ui?.supplyFields}
+          assetSchema={platformContext.assetSchema}
+          agentDraft={platformContext.agentDraft}
+        />
       ) : (
         <PlatformDashboard
           paymentMode="test"
@@ -189,7 +194,65 @@ function AutoPlugin() {
           onNotice={notify}
         />
       )}
+      <PluginSettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        locale={platformContext.locale}
+        copy={platformContext.ui?.copy}
+      >
+        <ContactProfile locale={platformContext.locale} copy={platformContext.ui?.copy} onNotice={notify} fields={platformContext.ui?.contactFields} submitContact={submitContact} />
+      </PluginSettingsDialog>
     </main>
+  );
+}
+
+function PluginSettingsDialog({
+  open,
+  onClose,
+  locale = "zh",
+  copy,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  locale?: PluginLocale;
+  copy?: PluginCopy;
+  children: ReactNode;
+}) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const text = (key: string, fallbackZh: string, fallbackEn = fallbackZh) => localizedCopy(locale, copy, key, fallbackZh, fallbackEn);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose, open]);
+
+  if (!open) return null;
+  return (
+    <div className="plugin-settings-overlay">
+      <button className="plugin-settings-backdrop" type="button" aria-label={text("closeSettingsDialog", "关闭设置对话框", "Close settings dialog")} onClick={onClose} />
+      <section className="plugin-settings-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <header>
+          <div>
+            <p className="eyebrow">{text("settingsEyebrow", "工作台", "Workspace")}</p>
+            <h2 id={titleId}>{text("settingsTitle", "设置", "Settings")}</h2>
+          </div>
+          <button ref={closeRef} className="plugin-settings-close" type="button" aria-label={text("closeSettings", "关闭设置", "Close settings")} onClick={onClose}>
+            <X size={19} aria-hidden="true" />
+          </button>
+        </header>
+        {children}
+      </section>
+    </div>
   );
 }
 
@@ -303,7 +366,7 @@ function ContactProfile({
       <div className="contact-profile-heading">
         <div>
           <p className="eyebrow">{text("contactEyebrow", "联系方式", "Contact")}</p>
-          <h2 id="auto-contact-profile-title">{text("contactTitle", "设置双方同意后交换的渠道", "Choose a channel to exchange after consent")}</h2>
+          <h3 id="auto-contact-profile-title">{text("contactTitle", "设置双方同意后交换的渠道", "Choose a channel to exchange after consent")}</h3>
           <p>{text("contactDescription", "联系方式字段由当前子平台配置，只有匹配双方同意后才会解锁。", "The fields are configured by this subplatform and unlock only after both sides agree.")}</p>
         </div>
       </div>
@@ -318,6 +381,7 @@ function ContactProfile({
               onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}
               placeholder={field.placeholder}
               maxLength={256}
+              required={field.required}
             />
           </label>
         ))}
