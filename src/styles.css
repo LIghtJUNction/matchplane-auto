@@ -2176,30 +2176,31 @@ main {
   padding: clamp(2.25rem, 6vw, 5.25rem) 0 5rem;
 }
 
-.auto-workbench-intro {
-  max-width: 46rem;
+.auto-catalog-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.auto-workbench-intro h1 {
-  max-width: 14ch;
-  margin-top: 0.75rem;
-  font-size: clamp(2.25rem, 5vw, 4.35rem);
-  font-weight: 620;
-  letter-spacing: -0.065em;
-  line-height: 0.98;
+.auto-catalog-heading h1 {
+  font-size: clamp(1.8rem, 3.4vw, 2.8rem);
+  letter-spacing: -0.05em;
+  line-height: 1.05;
 }
 
-.auto-workbench-intro > div > p:last-child,
-.auto-workbench-intro > p:last-child {
-  max-width: 39rem;
-  margin-top: 0.9rem;
+.auto-catalog-heading p {
+  max-width: 38rem;
+  margin-top: 0.5rem;
   color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.65;
+  font-size: 0.82rem;
+  line-height: 1.55;
 }
+
+.auto-catalog-heading > span { flex: 0 0 auto; color: var(--muted); font-size: 0.72rem; }
 
 .auto-results-toolbar {
-  margin-top: 2.5rem;
+  margin-top: 1.65rem;
   padding-bottom: 0.9rem;
   display: flex;
   align-items: center;
@@ -2233,32 +2234,35 @@ main {
 
 .auto-results { margin-top: 1rem; }
 
-.auto-vehicle-list {
-  display: grid;
-  gap: 0.55rem;
-}
+.auto-vehicle-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; }
 
 .auto-vehicle-card {
   min-width: 0;
-  padding: 0.7rem;
   display: grid;
-  grid-template-columns: 7.25rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 1rem;
+  border-radius: 1.05rem;
   background: var(--ivory);
-  transition: border-color 160ms ease, background-color 160ms ease;
+  transition: border-color 160ms ease, transform 160ms ease;
 }
 
-.auto-vehicle-card:hover { border-color: var(--line-strong); }
+.auto-vehicle-card:hover { border-color: var(--line-strong); transform: translateY(-0.12rem); }
 
-.auto-vehicle-visual .vehicle-visual {
-  min-height: 5.5rem;
-  border-radius: 0.72rem;
+.auto-vehicle-image {
+  min-height: 12.5rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 0;
+  background: var(--paper);
+  color: var(--muted);
+  cursor: pointer;
 }
 
-.auto-vehicle-visual .vehicle-visual svg { width: 2.65rem; height: 2.65rem; }
+.auto-vehicle-image img { width: 100%; height: 100%; object-fit: cover; }
+.auto-vehicle-image > span { display: grid; justify-items: center; gap: 0.5rem; font-size: 0.72rem; }
 
 .auto-vehicle-copy { min-width: 0; }
 
@@ -2275,8 +2279,6 @@ main {
   align-items: center;
   gap: 0.2rem;
 }
-
-.auto-vehicle-meta > span:first-child { color: #42665a; font-weight: 700; }
 
 .auto-vehicle-title {
   max-width: 100%;
@@ -2300,6 +2302,8 @@ main {
 .auto-vehicle-title:hover,
 .auto-vehicle-title:focus-visible { color: #42665a; }
 
+.auto-vehicle-copy { padding: 0.9rem 0.9rem 0; }
+
 .auto-vehicle-copy > p {
   margin-top: 0.15rem;
   overflow: hidden;
@@ -2309,8 +2313,7 @@ main {
   white-space: nowrap;
 }
 
-.auto-vehicle-facts,
-.auto-vehicle-reason {
+.auto-vehicle-facts {
   margin-top: 0.38rem;
   display: flex;
   align-items: center;
@@ -2320,19 +2323,20 @@ main {
   line-height: 1.35;
 }
 
-.auto-vehicle-reason { color: var(--muted); }
-.auto-vehicle-reason svg { color: #527568; flex: 0 0 auto; }
-
 .auto-vehicle-actions {
-  min-width: 5.25rem;
-  display: grid;
-  justify-items: end;
-  gap: 0.6rem;
+  padding: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  border-top: 1px solid var(--line);
 }
 
-.auto-vehicle-actions strong { font-size: 0.82rem; }
+.auto-vehicle-actions strong { font-size: 1rem; letter-spacing: -0.025em; }
+.auto-vehicle-actions > div { display: flex; gap: 0.42rem; }
 
 .auto-save-button,
+.auto-open-button,
 .plugin-settings-close {
   width: 2.55rem;
   height: 2.55rem;
@@ -2347,9 +2351,11 @@ main {
   color: #31554a;
 }
 
+.auto-open-button { border: 0; background: var(--ink); color: var(--ivory); cursor: pointer; }
+
 .auto-empty-state {
   max-width: 32rem;
-  margin: 4rem auto;
+  margin: 3rem 0;
   display: grid;
   justify-items: start;
   gap: 0.6rem;
@@ -2507,11 +2513,10 @@ main {
   .plugin-settings-trigger { width: 2.65rem; padding: 0; justify-content: center; }
   .plugin-settings-trigger span { display: none; }
   .plugin-app .dashboard { width: min(100% - 1.4rem, 64rem); padding-top: 2.35rem; }
-  .auto-workbench-intro h1 { font-size: clamp(2rem, 11vw, 3rem); }
+  .auto-catalog-heading { align-items: flex-start; flex-direction: column; }
   .auto-results-toolbar { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
-  .auto-vehicle-card { grid-template-columns: 5.3rem minmax(0, 1fr); gap: 0.7rem; }
-  .auto-vehicle-visual .vehicle-visual { min-height: 5rem; }
-  .auto-vehicle-actions { grid-column: 2; grid-row: 2; min-width: 0; display: flex; align-items: center; justify-content: space-between; }
+  .auto-vehicle-grid { grid-template-columns: 1fr; }
+  .auto-vehicle-image { min-height: 13rem; }
   .seller-upload-form,
   .contact-profile-form { grid-template-columns: 1fr; }
   .seller-upload-wide,

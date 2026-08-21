@@ -6,6 +6,7 @@ export interface VehicleListing {
   id: string;
   title: string;
   subtitle: string;
+  imageUrl?: string;
   price: string;
   monthly: string;
   mileage: string;

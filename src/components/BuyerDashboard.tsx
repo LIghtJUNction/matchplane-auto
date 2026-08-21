@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
-import { Heart, MapPin, Search, Sparkles } from "lucide-react";
+import { ArrowUpRight, CarFront, Heart, MapPin, Search } from "lucide-react";
 
 import { localizedCopy, type PluginCopy, type PluginLocale } from "../copy";
 import type { VehicleListing } from "../types";
-import { VehicleVisual } from "./Primitives";
 
 interface BuyerDashboardProps {
   onOpenListing: (listing: VehicleListing) => void;
@@ -46,10 +45,12 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
 
   return (
     <div className="dashboard buyer-dashboard auto-buyer-workbench">
-      <section className="auto-workbench-intro" aria-labelledby="auto-buyer-title">
-        <p className="eyebrow">{text("buyerEyebrow", "二手车撮合", "Used-car matching")}</p>
-        <h1 id="auto-buyer-title">{text("buyerWorkspaceTitle", "从真实车源里，找到合适的一台。", "Find the right car from real offers.")}</h1>
-        <p>{text("buyerWorkspaceDescription", "结果来自当前需求的真实匹配。打开一条车源即可查看理由并申请联系。", "These results come from the current matching request. Open an offer to review the reasons and request contact.")}</p>
+      <section className="auto-catalog-heading" aria-labelledby="auto-buyer-title">
+        <div>
+          <h1 id="auto-buyer-title">{text("buyerWorkspaceTitle", "在售车源", "Available vehicles")}</h1>
+          <p>{text("buyerWorkspaceDescription", "审核通过的车源会显示在这里。打开一张卡片即可查看详情并申请联系。", "Approved vehicles appear here. Open a card for details and to request contact.")}</p>
+        </div>
+        <span>{locale === "en" ? `${visible.length} vehicles` : `${visible.length} 台车`}</span>
       </section>
 
       <section className="auto-results-toolbar" aria-label={text("searchOffersLabel", "搜索车源", "Search offers")}>
@@ -63,19 +64,19 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
             type="search"
           />
         </label>
-        <span>{locale === "en" ? `${visible.length} results` : `${visible.length} 条结果`}</span>
       </section>
 
       {visible.length ? (
         <section className="auto-results" aria-labelledby="auto-results-title">
           <h2 id="auto-results-title" className="sr-only">{text("recommendationsEyebrow", "优先推荐", "Priority recommendations")}</h2>
-          <div className="auto-vehicle-list">
+          <div className="auto-vehicle-grid">
             {visible.map((listing) => (
               <article className="auto-vehicle-card" key={listing.id}>
-                <div className="auto-vehicle-visual"><VehicleVisual accent={listing.accent} compact /></div>
+                <button className="auto-vehicle-image" type="button" onClick={() => onOpenListing(listing)} aria-label={text("openListingLabel", `查看 ${listing.title}`, `View ${listing.title}`)}>
+                  {listing.imageUrl ? <img src={listing.imageUrl} alt={listing.title} /> : <span><CarFront size={30} aria-hidden="true" />{text("imagePendingLabel", "图片待补充", "Image pending")}</span>}
+                </button>
                 <div className="auto-vehicle-copy">
                   <div className="auto-vehicle-meta">
-                    <span>{listing.matchScore}% {text("matchLabel", "匹配", "match")}</span>
                     <span><MapPin size={13} aria-hidden="true" />{listing.location}</span>
                   </div>
                   <button className="auto-vehicle-title" type="button" onClick={() => onOpenListing(listing)}>
@@ -83,19 +84,21 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
                   </button>
                   <p>{listing.subtitle}</p>
                   <span className="auto-vehicle-facts">{listing.year} · {listing.mileage} · {listing.energy}</span>
-                  <span className="auto-vehicle-reason"><Sparkles size={14} aria-hidden="true" />{listing.reasons[0]}</span>
                 </div>
                 <div className="auto-vehicle-actions">
                   <strong>{listing.price}</strong>
-                  <button
-                    className={`auto-save-button${saved.has(listing.id) ? " is-saved" : ""}`}
-                    type="button"
-                    aria-label={saved.has(listing.id) ? text("removeSavedLabel", `取消收藏 ${listing.title}`, `Remove ${listing.title} from saved`) : text("saveListingLabel", `收藏 ${listing.title}`, `Save ${listing.title}`)}
-                    aria-pressed={saved.has(listing.id)}
-                    onClick={() => toggleSaved(listing)}
-                  >
-                    <Heart size={18} fill={saved.has(listing.id) ? "currentColor" : "none"} aria-hidden="true" />
-                  </button>
+                  <div>
+                    <button
+                      className={`auto-save-button${saved.has(listing.id) ? " is-saved" : ""}`}
+                      type="button"
+                      aria-label={saved.has(listing.id) ? text("removeSavedLabel", `取消收藏 ${listing.title}`, `Remove ${listing.title} from saved`) : text("saveListingLabel", `收藏 ${listing.title}`, `Save ${listing.title}`)}
+                      aria-pressed={saved.has(listing.id)}
+                      onClick={() => toggleSaved(listing)}
+                    >
+                      <Heart size={17} fill={saved.has(listing.id) ? "currentColor" : "none"} aria-hidden="true" />
+                    </button>
+                    <button className="auto-open-button" type="button" onClick={() => onOpenListing(listing)} aria-label={text("openListingLabel", `查看 ${listing.title}`, `View ${listing.title}`)}><ArrowUpRight size={17} aria-hidden="true" /></button>
+                  </div>
                 </div>
               </article>
             ))}

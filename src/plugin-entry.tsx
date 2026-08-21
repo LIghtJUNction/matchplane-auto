@@ -284,6 +284,7 @@ function mapHostedListing(value: unknown, index: number, locale: PluginLocale, c
     id,
     title,
     subtitle: textValue(value.subtitle) || "",
+    imageUrl: textValue(value.imageUrl) || textValue(value.image_url) || undefined,
     price: textValue(value.price) || localizedCopy(locale, copy, "noPriceLabel", "面议", "Price on request"),
     monthly: textValue(value.priceLabel) || "",
     mileage: fact("mileage", "里程") || "—",
