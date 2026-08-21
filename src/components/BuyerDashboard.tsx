@@ -16,18 +16,27 @@ interface BuyerDashboardProps {
 export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], locale = "zh", copy }: BuyerDashboardProps) {
   const text = (key: string, fallbackZh: string, fallbackEn = fallbackZh) => localizedCopy(locale, copy, key, fallbackZh, fallbackEn);
   const [query, setQuery] = useState("");
+  const [brand, setBrand] = useState("");
+  const [energy, setEnergy] = useState("");
+  const [location, setLocation] = useState("");
   const [saved, setSaved] = useState<Set<string>>(() => new Set());
+  const brands = useMemo(() => [...new Set(recommendations.map((listing) => listing.brand).filter((value): value is string => Boolean(value)))], [recommendations]);
+  const energies = useMemo(() => [...new Set(recommendations.map((listing) => listing.energy).filter((value) => value && value !== "—"))], [recommendations]);
+  const locations = useMemo(() => [...new Set(recommendations.map((listing) => listing.location).filter((value) => value && value !== "—"))], [recommendations]);
   const visible = useMemo(() => {
     const language = locale === "zh" ? "zh-CN" : "en";
     const normalized = query.trim().toLocaleLowerCase(language);
-    if (!normalized) return recommendations;
-    return recommendations.filter((listing) =>
-      [listing.title, listing.subtitle, listing.location, listing.energy, listing.year]
+    return recommendations.filter((listing) => {
+      if (brand && listing.brand !== brand) return false;
+      if (energy && listing.energy !== energy) return false;
+      if (location && listing.location !== location) return false;
+      return !normalized || [listing.title, listing.subtitle, listing.brand, listing.model, listing.location, listing.energy, listing.year]
+        .filter(Boolean)
         .join(" ")
         .toLocaleLowerCase(language)
-        .includes(normalized),
-    );
-  }, [locale, query, recommendations]);
+        .includes(normalized);
+    });
+  }, [brand, energy, locale, location, query, recommendations]);
 
   const toggleSaved = (listing: VehicleListing) => {
     setSaved((current) => {
@@ -47,8 +56,8 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
     <div className="dashboard buyer-dashboard auto-buyer-workbench">
       <section className="auto-catalog-heading" aria-labelledby="auto-buyer-title">
         <div>
-          <h1 id="auto-buyer-title">{text("buyerWorkspaceTitle", "在售车源", "Available vehicles")}</h1>
-          <p>{text("buyerWorkspaceDescription", "审核通过的车源会显示在这里。打开一张卡片即可查看详情并申请联系。", "Approved vehicles appear here. Open a card for details and to request contact.")}</p>
+          <h1 id="auto-buyer-title">{text("buyerWorkspaceTitle", "精选车源", "Vehicles")}</h1>
+          <p>{text("buyerWorkspaceDescription", "真实图片、车况和价格，直接挑选。", "Real photos, condition, and prices.")}</p>
         </div>
         <span>{locale === "en" ? `${visible.length} vehicles` : `${visible.length} 台车`}</span>
       </section>
@@ -64,6 +73,9 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
             type="search"
           />
         </label>
+        <label className="auto-filter-field"><span>品牌</span><select value={brand} onChange={(event) => setBrand(event.target.value)}><option value="">全部品牌</option>{brands.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label className="auto-filter-field"><span>能源</span><select value={energy} onChange={(event) => setEnergy(event.target.value)}><option value="">全部能源</option>{energies.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label className="auto-filter-field"><span>地区</span><select value={location} onChange={(event) => setLocation(event.target.value)}><option value="">全部地区</option>{locations.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
       </section>
 
       {visible.length ? (
@@ -73,7 +85,7 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
             {visible.map((listing) => (
               <article className="auto-vehicle-card" key={listing.id}>
                 <button className="auto-vehicle-image" type="button" onClick={() => onOpenListing(listing)} aria-label={text("openListingLabel", `查看 ${listing.title}`, `View ${listing.title}`)}>
-                  {listing.imageUrl ? <img src={listing.imageUrl} alt={listing.title} /> : <span><CarFront size={30} aria-hidden="true" />{text("imagePendingLabel", "图片待补充", "Image pending")}</span>}
+                  {listing.imageUrl ? <img src={listing.imageUrl} alt={listing.title} loading="lazy" decoding="async" /> : <span><CarFront size={30} aria-hidden="true" />{text("imagePendingLabel", "暂无图片", "No image")}</span>}
                 </button>
                 <div className="auto-vehicle-copy">
                   <div className="auto-vehicle-meta">
@@ -82,7 +94,7 @@ export function BuyerDashboard({ onOpenListing, onNotice, recommendations = [], 
                   <button className="auto-vehicle-title" type="button" onClick={() => onOpenListing(listing)}>
                     {listing.title}
                   </button>
-                  <p>{listing.subtitle}</p>
+                  {listing.subtitle ? <p>{listing.subtitle}</p> : null}
                   <span className="auto-vehicle-facts">{listing.year} · {listing.mileage} · {listing.energy}</span>
                 </div>
                 <div className="auto-vehicle-actions">

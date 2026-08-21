@@ -8,6 +8,7 @@
     "check": "tsc --noEmit && bun run agent:check",
     "agent:check": "tsc -p agent/tsconfig.json --noEmit",
     "agent:test": "bun test agent/src/server.test.ts",
+    "agent:compile": "bun build --compile agent/src/server.ts --outfile dist/matchplane-auto-agent",
     "agent:serve": "bun run agent/src/server.ts"
   },
   "dependencies": {

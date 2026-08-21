@@ -4,8 +4,6 @@ import {
   CalendarDays,
   Check,
   LockKeyhole,
-  MapPin,
-  MessageCircle,
   Phone,
   ShieldCheck,
   Sparkles,
@@ -73,8 +71,8 @@ export function ListingSheet({ listing, onClose, onContact }: ListingSheetProps)
               </motion.button>
             </div>
             <div className="sheet-scroll">
-              <VehicleVisual accent={listing.accent} />
-              <div className="sheet-match"><Sparkles size={15} aria-hidden="true" /> {listing.matchScore}% 需求匹配</div>
+              <div className="sheet-vehicle-media">{listing.imageUrl ? <img src={listing.imageUrl} alt={listing.title} /> : <VehicleVisual accent={listing.accent} />}</div>
+              {listing.matchScore === undefined ? null : <div className="sheet-match"><Sparkles size={15} aria-hidden="true" /> {listing.matchScore}% 需求匹配</div>}
               <h2 id="listing-sheet-title">{listing.title}</h2>
               <p className="sheet-subtitle">{listing.subtitle}</p>
               <div className="sheet-price"><strong>{listing.price}</strong><span>{listing.monthly}</span></div>
@@ -85,20 +83,20 @@ export function ListingSheet({ listing, onClose, onContact }: ListingSheetProps)
                 <div><dt>位置</dt><dd>{listing.location}</dd></div>
               </dl>
 
-              <section className="sheet-section">
+              {listing.reasons.length ? <section className="sheet-section">
                 <h3>为什么适合你</h3>
                 <ul className="reason-list">
                   {listing.reasons.map((reason) => (
                     <li key={reason}><span><Check size={14} aria-hidden="true" /></span>{reason}</li>
                   ))}
                 </ul>
-              </section>
+              </section> : null}
 
               <section className="sheet-section trust-section">
                 <div className="seller-line">
                   <span className="seller-avatar">{listing.seller.slice(0, 1)}</span>
                   <div><strong>{listing.seller}</strong><small>{listing.response}</small></div>
-                  <BadgeCheck size={20} aria-label="卖家身份已核验" />
+                  {listing.trust.length ? <BadgeCheck size={20} aria-label="卖家信息已核验" /> : null}
                 </div>
                 <ul>
                   {listing.trust.map((item) => <li key={item}><ShieldCheck size={15} aria-hidden="true" />{item}</li>)}
@@ -108,19 +106,17 @@ export function ListingSheet({ listing, onClose, onContact }: ListingSheetProps)
               <section className="offline-contact-card">
                 <span className="contact-icon"><LockKeyhole aria-hidden="true" /></span>
                 <div>
-                  <h3>匹配后直接联系卖家</h3>
-                  <p>平台确认撮合与提成安排后，双方联系方式按权限解锁；整车款可在线下当面结算。</p>
+                  <h3>联系卖家</h3>
+                  <p>双方同意后查看联系方式并预约看车。</p>
                 </div>
                 <div className="contact-options">
-                  <span><MessageCircle size={15} aria-hidden="true" />站内沟通</span>
                   <span><Phone size={15} aria-hidden="true" />电话 / 微信</span>
                   <span><CalendarDays size={15} aria-hidden="true" />预约看车</span>
-                  <span><MapPin size={15} aria-hidden="true" />地点加密</span>
                 </div>
               </section>
             </div>
             <div className="sheet-footer">
-                <div><small>平台服务费</small><strong>按当前平台披露规则结算</strong></div>
+                <div><small>联系规则</small><strong>双方同意后交换</strong></div>
               <motion.button
                 className="button button-dark"
                 type="button"

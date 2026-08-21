@@ -47,10 +47,15 @@ MATCHPLANE_AUTO_MCP_TOKEN=change-me bun run agent:serve
 
 The endpoint is `http://127.0.0.1:8787/mcp` by default. In production set
 `MATCHPLANE_AUTO_PLATFORM_PATH`, `MATCHPLANE_AUTO_TENANT_ID`, `MATCHPLANE_AUTO_DOMAIN_ID`,
-`MATCHPLANE_AUTO_MCP_TOKEN` and a persistent `MATCHPLANE_AUTO_DATA_DIR`; expose it through an
+`MATCHPLANE_AUTO_MCP_TOKEN`, `MATCHPLANE_AUTO_PUBLIC_BASE_URL` and a persistent `MATCHPLANE_AUTO_DATA_DIR`; expose it through an
 operator-controlled HTTPS endpoint and bind the manifest key `used-car` in
 `MATCHPLANE_SUBPLATFORM_MCP_ENDPOINTS_JSON`. The service does not create MatchPlane accounts,
 issue capability tokens, return contact details, or settle payments.
+
+For a host deployment, compile the service with bun run agent:compile, install the service unit
+under deploy/, and proxy /auto-agent/mcp plus /auto-agent/media/ through the public HTTPS origin.
+The public base URL is used only to build immutable product-image URLs; the MCP endpoint still
+requires the operator token.
 
 ## Publishing
 

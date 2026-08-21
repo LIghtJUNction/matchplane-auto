@@ -6,6 +6,8 @@ export interface VehicleListing {
   id: string;
   title: string;
   subtitle: string;
+  brand?: string;
+  model?: string;
   imageUrl?: string;
   price: string;
   monthly: string;
@@ -13,7 +15,7 @@ export interface VehicleListing {
   location: string;
   energy: string;
   year: string;
-  matchScore: number;
+  matchScore?: number;
   accent: Accent;
   reasons: string[];
   trust: string[];

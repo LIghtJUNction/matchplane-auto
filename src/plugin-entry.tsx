@@ -279,11 +279,13 @@ function mapHostedListing(value: unknown, index: number, locale: PluginLocale, c
     : (["cactus", "clay", "heather", "oat"] as const)[index % 4];
   const score = typeof value.matchScore === "number" && Number.isFinite(value.matchScore)
     ? Math.max(0, Math.min(100, Math.round(value.matchScore)))
-    : 0;
+    : undefined;
   return {
     id,
     title,
     subtitle: textValue(value.subtitle) || "",
+    brand: fact("brand", "品牌"),
+    model: fact("model", "车型"),
     imageUrl: textValue(value.imageUrl) || textValue(value.image_url) || undefined,
     price: textValue(value.price) || localizedCopy(locale, copy, "noPriceLabel", "面议", "Price on request"),
     monthly: textValue(value.priceLabel) || "",
@@ -291,9 +293,9 @@ function mapHostedListing(value: unknown, index: number, locale: PluginLocale, c
     location: textValue(value.location) || localizedCopy(locale, copy, "locationUnavailableLabel", "未提供", "Not provided"),
     energy: fact("energy", "能源") || "—",
     year: fact("year", "年份") || "—",
-    matchScore: score,
+    ...(score === undefined ? {} : { matchScore: score }),
     accent,
-    reasons: reasons.length ? reasons : [localizedCopy(locale, copy, "defaultMatchReason", "根据当前需求排序", "Ranked against your current need")],
+    reasons,
     trust,
     seller: textValue(value.seller) || localizedCopy(locale, copy, "supplySideLabel", "供给方", "Supply side"),
     response: textValue(value.response) || localizedCopy(locale, copy, "matchingInProgressLabel", "平台撮合中", "Matching in progress"),

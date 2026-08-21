@@ -121,10 +121,65 @@ describe("child Agent MCP adapter", () => {
       });
       const attachment = result.result.structuredContent.attachment;
       expect(attachment.attachment_ref).toMatch(/^media:\/\/auto\/[0-9a-f]{64}$/);
+      expect(attachment.metadata.public_url).toMatch(/^http:\/\/127\.0\.0\.1:8787\/media\/[0-9a-f]{64}\/proof\.png$/);
       expect(attachment.size_bytes).toBe(bytes.byteLength);
       const digest = attachment.sha256 as string;
       const stored = await readFile(join(directory, "media", digest, "proof.png"));
       expect([...stored]).toEqual([...bytes]);
+      const publicResponse = await handler(new Request(attachment.metadata.public_url));
+      expect(publicResponse.status).toBe(200);
+      expect(publicResponse.headers.get("cache-control")).toContain("immutable");
+      expect([...new Uint8Array(await publicResponse.arrayBuffer())]).toEqual([...bytes]);
+    } finally {
+      store.close();
+    }
+  });
+
+  it("understands vehicle budget, energy, year and mileage as hard shopping constraints", async () => {
+    const { handler, store } = await fixture();
+    try {
+      const matchingOfferId = "77777777-7777-4777-8777-777777777777";
+      const rejectedOfferId = "88888888-8888-4888-8888-888888888888";
+      await call(handler, "catalog.upsert", {
+        protocol: "matchplane.catalog/v1",
+        request_id: requestId,
+        scope: scope(),
+        offer: {
+          offer_id: matchingOfferId,
+          external_key: "ev-city",
+          display_name: "城市纯电通勤车",
+          attributes: { brand: "示例汽车", energy: "纯电", year: 2022, mileage: 32000, location: "上海", description: "适合城市通勤" },
+          terms: { pricing_mode: "fixed", amount_minor: "8800000", currency: "CNY", currency_scale: 2 },
+          status: "active",
+        },
+      });
+      await call(handler, "catalog.upsert", {
+        protocol: "matchplane.catalog/v1",
+        request_id: "99999999-9999-4999-8999-999999999999",
+        scope: scope(),
+        offer: {
+          offer_id: rejectedOfferId,
+          external_key: "petrol-old",
+          display_name: "燃油代步车",
+          attributes: { brand: "其他汽车", energy: "燃油", year: 2018, mileage: 90000, location: "上海", description: "普通代步" },
+          terms: { pricing_mode: "fixed", amount_minor: "6800000", currency: "CNY", currency_scale: 2 },
+          status: "active",
+        },
+      });
+
+      const result = await call(handler, "retrieval.query", {
+        protocol: "matchplane.retrieval/v1",
+        request_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        scope: scope(),
+        input: { narrative: "预算10万以内，想找2020年以后、5万公里以内的纯电通勤车", requirements: {} },
+        limit: 10,
+      });
+      const candidates = result.result.structuredContent.candidates;
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0].offer_id).toBe(matchingOfferId);
+      expect(candidates[0].reasons).toContain("价格在预算范围内");
+      expect(candidates[0].reasons.some((reason: string) => reason.includes("能源类型"))).toBe(true);
+      expect(result.result.structuredContent.provider.id).toBe("matchplane-auto.vehicle-intent");
     } finally {
       store.close();
     }
@@ -136,6 +191,7 @@ async function fixture(): Promise<{ handler: (request: Request) => Promise<Respo
   temporaryDirectories.push(directory);
   const config: AgentConfig = {
     platformPath,
+    publicBaseUrl: "http://127.0.0.1:8787",
     token: "test-secret",
     dataDir: directory,
     maxMediaBytes: 100 * 1024 * 1024,

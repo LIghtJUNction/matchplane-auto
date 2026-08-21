@@ -38,6 +38,7 @@ type OfferStatus = "draft" | "active" | "reserved" | "sold" | "withdrawn" | "exp
 
 export interface AgentConfig {
   platformPath: string;
+  publicBaseUrl: string;
   token: string | null;
   dataDir: string;
   maxMediaBytes: number;
@@ -69,7 +70,23 @@ interface RetrievalQuery {
   platformPath: string;
   narrative: string;
   requirements: JsonObject;
+  budgetMin: string | null;
+  budgetMax: string | null;
+  currency: string | null;
+  currencyScale: number | null;
   limit: number;
+}
+
+interface VehicleIntent {
+  tokens: Set<string>;
+  brand: string | null;
+  energy: string | null;
+  location: string | null;
+  minimumYear: number | null;
+  maximumMileage: number | null;
+  budgetMinMinor: bigint | null;
+  budgetMaxMinor: bigint | null;
+  hardBudget: boolean;
 }
 
 interface StoredOffer {
@@ -113,12 +130,17 @@ export function loadAgentConfig(environment: NodeJS.ProcessEnv = process.env): A
   const dataDir = resolve(environment.MATCHPLANE_AUTO_DATA_DIR?.trim() || join(process.cwd(), ".data", "agent"));
   const expectedTenantId = optionalUuid(environment.MATCHPLANE_AUTO_TENANT_ID);
   const expectedDomainId = optionalUuid(environment.MATCHPLANE_AUTO_DOMAIN_ID);
-  if (runtime === "production" && (!token || !expectedTenantId || !expectedDomainId)) {
-    throw new Error("production child Agent requires MATCHPLANE_AUTO_MCP_TOKEN, MATCHPLANE_AUTO_TENANT_ID and MATCHPLANE_AUTO_DOMAIN_ID");
+  const publicBaseUrl = normalizePublicBaseUrl(
+    environment.MATCHPLANE_AUTO_PUBLIC_BASE_URL?.trim() || "http://127.0.0.1:8787",
+    runtime,
+  );
+  if (runtime === "production" && (!token || !expectedTenantId || !expectedDomainId || !publicBaseUrl)) {
+    throw new Error("production child Agent requires MCP token, tenant/domain binding and an HTTPS MATCHPLANE_AUTO_PUBLIC_BASE_URL");
   }
 
   return {
     platformPath,
+    publicBaseUrl: publicBaseUrl || "http://127.0.0.1:8787",
     token,
     dataDir,
     maxMediaBytes,
@@ -249,6 +271,26 @@ export class AgentStore {
     `).run(sha256, relativePath, fileName, input.mediaType, input.kind, input.bytes.byteLength, new Date().toISOString());
     return { sha256, relativePath, fileName, mediaType: input.mediaType, kind: input.kind, sizeBytes: input.bytes.byteLength };
   }
+
+  publicMedia(sha256: string, fileName: string): (StoredMedia & { absolutePath: string }) | null {
+    const row = this.database.query(
+      `SELECT sha256, relative_path, file_name, media_type, kind, size_bytes
+         FROM media WHERE sha256 = ? AND file_name = ? LIMIT 1`,
+    ).get(sha256, fileName) as Record<string, unknown> | null;
+    if (!row) return null;
+    const relativePath = String(row.relative_path);
+    const absolutePath = resolve(this.dataDir, relativePath);
+    if (!absolutePath.startsWith(this.dataDir + "/")) return null;
+    return {
+      sha256: String(row.sha256),
+      relativePath,
+      absolutePath,
+      fileName: String(row.file_name),
+      mediaType: String(row.media_type),
+      kind: String(row.kind) as MediaKind,
+      sizeBytes: Number(row.size_bytes),
+    };
+  }
 }
 
 /** Create a fetch handler so tests and operators can embed the child service without global state. */
@@ -257,6 +299,9 @@ export function createAgentHandler(options: AgentServerOptions): (request: Reque
     const url = new URL(request.url);
     if (url.pathname === "/health" && request.method === "GET") {
       return json({ ok: true, service: "matchplane-auto-agent", platform_path: options.config.platformPath });
+    }
+    if (request.method === "GET" && url.pathname.startsWith("/media/")) {
+      return publicMediaResponse(url, options.store);
     }
     if (url.pathname !== "/mcp") return json({ error: "not found" }, 404);
     if (request.method !== "POST") return json({ error: "method not allowed" }, 405, { allow: "POST" });
@@ -397,18 +442,23 @@ function retrievalQuery(value: JsonObject, options: AgentServerOptions): JsonObj
     platformPath: scope.platform_path,
     narrative,
     requirements,
+    budgetMin: optionalUnsignedIntegerString(input.budget_min),
+    budgetMax: optionalUnsignedIntegerString(input.budget_max),
+    currency: typeof input.currency === "string" && /^[A-Z]{3}$/.test(input.currency) ? input.currency : null,
+    currencyScale: typeof input.currency_scale === "number" && Number.isSafeInteger(input.currency_scale) && input.currency_scale >= 0 && input.currency_scale <= 18 ? input.currency_scale : null,
     limit,
   };
-  const queryTokens = tokenize([query.narrative, JSON.stringify(query.requirements)].join(" "));
+  const intent = parseVehicleIntent(query);
   const candidates = options.store.activeOffers()
-    .map((offer) => rankOffer(offer, queryTokens))
-    .sort((left, right) => Number(right.score) - Number(left.score) || String(left.offer_id).localeCompare(String(right.offer_id)))
+    .map((offer) => rankOffer(offer, intent))
+    .filter((ranked) => ranked.eligible)
+    .sort((left, right) => Number(right.candidate.score) - Number(left.candidate.score) || String(left.candidate.offer_id).localeCompare(String(right.candidate.offer_id)))
     .slice(0, Math.min(query.limit, MAX_RETRIEVAL_CANDIDATES));
   return {
     protocol: RETRIEVAL_PROTOCOL,
     request_id: query.requestId,
-    provider: { id: "matchplane-auto.lexical", version: "1.0.0", model: null },
-    candidates,
+    provider: { id: "matchplane-auto.vehicle-intent", version: "2.0.0", model: null },
+    candidates: candidates.map((ranked) => ranked.candidate),
     degraded: false,
     generated_at: new Date().toISOString(),
   };
@@ -447,9 +497,36 @@ async function mediaUpload(value: JsonObject, options: AgentServerOptions): Prom
       media_type: stored.mediaType,
       size_bytes: stored.sizeBytes,
       sha256: stored.sha256,
-      metadata: { storage: "child-local-content-addressed", scanner: "basic" },
+      metadata: {
+        storage: "child-local-content-addressed",
+        scanner: "basic",
+        public_url: `${options.config.publicBaseUrl}/media/${stored.sha256}/${encodeURIComponent(stored.fileName)}`,
+      },
     },
   };
+}
+
+function publicMediaResponse(url: URL, store: AgentStore): Response {
+  const matched = /^\/media\/([0-9a-f]{64})\/([^/]+)$/i.exec(url.pathname);
+  if (!matched) return json({ error: "media not found" }, 404);
+  let fileName: string;
+  try {
+    fileName = decodeURIComponent(matched[2]);
+  } catch {
+    return json({ error: "media not found" }, 404);
+  }
+  if (!isSafeFileName(fileName)) return json({ error: "media not found" }, 404);
+  const media = store.publicMedia(matched[1].toLowerCase(), fileName);
+  if (!media || media.kind !== "image") return json({ error: "media not found" }, 404);
+  return new Response(Bun.file(media.absolutePath), {
+    headers: {
+      "content-type": media.mediaType,
+      "content-length": String(media.sizeBytes),
+      "cache-control": "public, max-age=31536000, immutable",
+      "cross-origin-resource-policy": "cross-origin",
+      "x-content-type-options": "nosniff",
+    },
+  });
 }
 
 function parseScope(value: unknown, config: AgentConfig): { tenant_id: string; domain_id: string; platform_path: string } {
@@ -464,31 +541,212 @@ function parseScope(value: unknown, config: AgentConfig): { tenant_id: string; d
   return { tenant_id: tenantId, domain_id: domainId, platform_path: platformPath };
 }
 
-function rankOffer(offer: StoredOffer, queryTokens: Set<string>): JsonObject {
+function parseVehicleIntent(query: RetrievalQuery): VehicleIntent {
+  const text = query.narrative.toLocaleLowerCase();
+  const requirements = query.requirements;
+  const explicitBudgetMin = query.budgetMin === null ? null : BigInt(query.budgetMin);
+  const explicitBudgetMax = query.budgetMax === null ? null : BigInt(query.budgetMax);
+  const narrativeBudget = parseNarrativeBudget(text, query.currencyScale ?? 2);
+  return {
+    tokens: tokenize([query.narrative, JSON.stringify(requirements)].join(" ")),
+    brand: stringRequirement(requirements, ["brand", "品牌"]),
+    energy: normalizeEnergy(stringRequirement(requirements, ["energy", "energy_type", "能源", "能源类型"]) ?? detectedEnergy(text)),
+    location: stringRequirement(requirements, ["location", "city", "地点", "城市"]),
+    minimumYear: integerRequirement(requirements, ["minimum_year", "min_year", "year_min", "最低年份"]) ?? detectedMinimumYear(text),
+    maximumMileage: integerRequirement(requirements, ["maximum_mileage", "max_mileage", "mileage_max", "最大里程"]) ?? detectedMaximumMileage(text),
+    budgetMinMinor: explicitBudgetMin ?? narrativeBudget.minimum,
+    budgetMaxMinor: explicitBudgetMax ?? narrativeBudget.maximum,
+    hardBudget: explicitBudgetMin !== null || explicitBudgetMax !== null || narrativeBudget.hard,
+  };
+}
+
+function rankOffer(offer: StoredOffer, intent: VehicleIntent): { candidate: JsonObject; eligible: boolean } {
   const offerTokens = tokenize(offer.searchableText);
   let overlap = 0;
-  for (const token of queryTokens) if (offerTokens.has(token)) overlap += 1;
-  const score = queryTokens.size === 0 ? 0 : Math.min(1, (overlap / queryTokens.size) * 0.7 + (overlap / Math.max(offerTokens.size, 1)) * 0.3);
-  const reasons = overlap > 0
-    ? [`子平台目录中有 ${overlap} 项内容与当前描述相符`]
-    : ["该候选来自已审核的子平台目录，但当前描述没有足够的文字证据"];
-  const risks = score < 0.2 ? ["需要人工确认具体属性、条款和可用状态"] : [];
-  const attributes = boundedProjection(offer.attributes);
+  for (const token of intent.tokens) if (offerTokens.has(token)) overlap += 1;
+  let score = intent.tokens.size === 0 ? 0.1 : Math.min(0.32, (overlap / intent.tokens.size) * 0.32);
+  const reasons: string[] = [];
+  const risks: string[] = [];
+  let eligible = true;
+  const attributes = offer.attributes;
+
+  const brand = normalizedAttribute(attributes, ["brand", "品牌"]);
+  if (intent.brand) {
+    if (brand && includesNormalized(brand, intent.brand)) { score += 0.18; reasons.push(`品牌符合 ${intent.brand}`); }
+    else { eligible = false; risks.push("品牌不符合明确要求"); }
+  }
+
+  const energy = normalizeEnergy(normalizedAttribute(attributes, ["energy", "energy_type", "能源", "能源类型"]));
+  if (intent.energy) {
+    if (energy === intent.energy) { score += 0.16; reasons.push(`能源类型为 ${energy}`); }
+    else { eligible = false; risks.push("能源类型不符合明确要求"); }
+  }
+
+  const location = normalizedAttribute(attributes, ["location", "city", "地点", "城市"]);
+  if (intent.location) {
+    if (location && includesNormalized(location, intent.location)) { score += 0.1; reasons.push(`看车地点符合 ${intent.location}`); }
+    else { risks.push("看车地点需要进一步确认"); }
+  }
+
+  const year = numericAttribute(attributes, ["year", "registration_year", "上牌年份", "年份"]);
+  if (intent.minimumYear !== null) {
+    if (year !== null && year >= intent.minimumYear) { score += 0.12; reasons.push(`${year} 年，符合年份要求`); }
+    else { eligible = false; risks.push("年份不符合明确要求"); }
+  }
+
+  const mileage = numericAttribute(attributes, ["mileage", "里程", "里程（公里）"]);
+  if (intent.maximumMileage !== null) {
+    if (mileage !== null && mileage <= intent.maximumMileage) { score += 0.12; reasons.push(`里程 ${formatKilometres(mileage)}，在要求内`); }
+    else { eligible = false; risks.push("里程不符合明确要求"); }
+  }
+
+  const price = offerPriceMinor(offer.terms);
+  if (intent.budgetMinMinor !== null || intent.budgetMaxMinor !== null) {
+    const belowMinimum = price !== null && intent.budgetMinMinor !== null && price < intent.budgetMinMinor;
+    const aboveMaximum = price !== null && intent.budgetMaxMinor !== null && price > intent.budgetMaxMinor;
+    if (price === null) {
+      risks.push("价格信息不足，无法核对预算");
+      if (intent.hardBudget) eligible = false;
+    } else if (belowMinimum || aboveMaximum) {
+      risks.push("价格不在明确预算内");
+      if (intent.hardBudget) eligible = false;
+    } else {
+      score += 0.24;
+      reasons.push("价格在预算范围内");
+    }
+  }
+
+  if (overlap > 0) {
+    score += Math.min(0.12, overlap * 0.02);
+    reasons.push(`名称和介绍命中 ${overlap} 项需求信息`);
+  }
+  if (!reasons.length && eligible) reasons.push("来自已审核的在售车源");
+  if (score < 0.2 && !risks.length) risks.push("具体车况仍需查看详情并线下确认");
+  const projectedAttributes = boundedProjection(offer.attributes);
   const terms = boundedProjection(offer.terms);
-  return {
+  return { eligible, candidate: {
     offer_id: offer.offerId,
     display_name: offer.displayName,
-    ...(attributes === undefined ? {} : { attributes }),
+    ...(projectedAttributes === undefined ? {} : { attributes: projectedAttributes }),
     ...(terms === undefined ? {} : { terms }),
-    score: roundScore(score),
+    score: roundScore(Math.min(0.99, score)),
     reasons,
     ...(risks.length ? { risks } : {}),
     metadata: { source: "child-catalog", updated_at: offer.updatedAt },
-  };
+  } };
 }
 
 function boundedProjection(value: JsonObject): JsonObject | undefined {
   return byteLength(JSON.stringify(value)) <= 8 * 1024 ? value : undefined;
+}
+
+function optionalUnsignedIntegerString(value: unknown): string | null {
+  if (typeof value === "string" && /^[0-9]{1,38}$/.test(value)) return value;
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) return String(value);
+  return null;
+}
+
+function stringRequirement(value: JsonObject, keys: string[]): string | null {
+  for (const key of keys) {
+    const candidate = value[key];
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  return null;
+}
+
+function integerRequirement(value: JsonObject, keys: string[]): number | null {
+  for (const key of keys) {
+    const candidate = value[key];
+    const parsed = typeof candidate === "number" ? candidate : typeof candidate === "string" ? Number(candidate) : Number.NaN;
+    if (Number.isSafeInteger(parsed) && parsed >= 0) return parsed;
+  }
+  return null;
+}
+
+function normalizedAttribute(value: JsonObject, keys: string[]): string | null {
+  for (const key of keys) {
+    const candidate = value[key];
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+    if (typeof candidate === "number" && Number.isFinite(candidate)) return String(candidate);
+  }
+  return null;
+}
+
+function numericAttribute(value: JsonObject, keys: string[]): number | null {
+  for (const key of keys) {
+    const candidate = value[key];
+    const parsed = typeof candidate === "number" ? candidate : typeof candidate === "string" ? Number(candidate.replaceAll(",", "")) : Number.NaN;
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+  return null;
+}
+
+function includesNormalized(value: string, expected: string): boolean {
+  const left = value.toLocaleLowerCase().replace(/\s+/g, "");
+  const right = expected.toLocaleLowerCase().replace(/\s+/g, "");
+  return left.includes(right) || right.includes(left);
+}
+
+function normalizeEnergy(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.toLocaleLowerCase();
+  if (/纯电|电动车|bev|electric/.test(normalized)) return "纯电";
+  if (/插混|插电|phev/.test(normalized)) return "插混";
+  if (/增程|erev/.test(normalized)) return "增程";
+  if (/混动|油电|hev/.test(normalized)) return "混动";
+  if (/燃油|汽油|柴油|油车|ice/.test(normalized)) return "燃油";
+  return value.trim();
+}
+
+function detectedEnergy(value: string): string | null {
+  return /纯电|电动车|bev|electric|插混|插电|phev|增程|erev|混动|油电|hev|燃油|汽油|柴油|油车|ice/i.test(value)
+    ? normalizeEnergy(value)
+    : null;
+}
+
+function detectedMinimumYear(value: string): number | null {
+  const matched = value.match(/(20\d{2})\s*年?\s*(?:以后|以上|起|及以后)/);
+  return matched ? Number(matched[1]) : null;
+}
+
+function detectedMaximumMileage(value: string): number | null {
+  const matched = value.match(/(\d+(?:\.\d+)?)\s*(万)?\s*公里\s*(?:以内|以下|最多|不超过)/);
+  if (!matched) return null;
+  const amount = Number(matched[1]);
+  return Number.isFinite(amount) ? Math.round(amount * (matched[2] ? 10_000 : 1)) : null;
+}
+
+function parseNarrativeBudget(value: string, currencyScale: number): { minimum: bigint | null; maximum: bigint | null; hard: boolean } {
+  const range = value.match(/(\d+(?:\.\d+)?)\s*(万|w|元)?\s*(?:-|到|至|~|—)\s*(\d+(?:\.\d+)?)\s*(万|w|元)(?!\s*公里)/i);
+  if (range) {
+    const unit = range[2] || range[4];
+    return {
+      minimum: moneyToMinor(range[1], unit, currencyScale),
+      maximum: moneyToMinor(range[3], range[4], currencyScale),
+      hard: true,
+    };
+  }
+  const upper = value.match(/(\d+(?:\.\d+)?)\s*(万|w|元)(?!\s*公里)\s*(?:以内|以下|封顶|最多|不超过)/i)
+    ?? value.match(/(?:预算|价格)\D{0,8}(\d+(?:\.\d+)?)\s*(万|w|元)(?!\s*公里)/i);
+  return upper
+    ? { minimum: null, maximum: moneyToMinor(upper[1], upper[2], currencyScale), hard: /以内|以下|封顶|最多|不超过/.test(upper[0]) }
+    : { minimum: null, maximum: null, hard: false };
+}
+
+function moneyToMinor(raw: string | undefined, unit: string | undefined, currencyScale: number): bigint | null {
+  const amount = Number(raw);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  const multiplier = unit?.toLocaleLowerCase() === "万" || unit?.toLocaleLowerCase() === "w" ? 10_000 : 1;
+  return BigInt(Math.round(amount * multiplier * (10 ** currencyScale)));
+}
+
+function offerPriceMinor(terms: JsonObject): bigint | null {
+  const value = terms.amount_minor;
+  return typeof value === "string" && /^[0-9]{1,38}$/.test(value) ? BigInt(value) : null;
+}
+
+function formatKilometres(value: number): string {
+  return value >= 10_000 ? `${Math.round(value / 1_000) / 10} 万公里` : `${Math.round(value)} 公里`;
 }
 
 function toolDefinitions(): JsonObject[] {
@@ -623,6 +881,17 @@ function normalizePlatformPath(value: string): string | null {
   if (value === "/") return "/";
   const path = value.replace(/\/+$/, "");
   return parseScopePath(path);
+}
+
+function normalizePublicBaseUrl(value: string, environment: string): string | null {
+  try {
+    const url = new URL(value);
+    const localDevelopment = environment !== "production" && (url.hostname === "127.0.0.1" || url.hostname === "localhost");
+    if ((url.protocol !== "https:" && !(localDevelopment && url.protocol === "http:")) || url.username || url.password || url.search || url.hash) return null;
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
 }
 
 function parseOfferStatus(value: unknown): OfferStatus {

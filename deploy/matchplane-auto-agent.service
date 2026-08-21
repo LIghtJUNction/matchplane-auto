@@ -1,0 +1,30 @@
+[Unit]
+Description=Matx Auto store Agent and media service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=matchplane-auto
+Group=matchplane-auto
+EnvironmentFile=/etc/matchplane/services/auto-agent.env
+WorkingDirectory=/var/lib/matchplane-auto
+ExecStart=/usr/local/lib/matchplane-auto/current/matchplane-auto-agent
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/matchplane-auto
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
